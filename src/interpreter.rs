@@ -1074,3 +1074,97 @@ impl Evaluate<Option<usize>> for Mode<Option<usize>> {
         Ok(())
     }
 }
+
+impl Mode<Option<usize>> {
+    pub fn command(
+        &mut self,
+        expr: String,
+        nav: &mut Navigator,
+        atoms: &mut Vec<String>,
+        facets: &mut Vec<String>,
+        route: &mut Vec<String>,
+        ctx: &mut Vec<String>,
+    ) -> Result<()> {
+        let mut parts = expr.split_whitespace();
+        let command = parts.next();
+        let args: Vec<String> = parts.map(String::from).collect();
+
+        match command {
+            Some(ACTIVATE_FACETS) => self.activate_facets(nav, facets, route, args)?,
+            Some(ACTIVATE_FACETS_LT) => self.activate_facets_lt(nav, facets, route, args)?,
+            Some(ACTIVATE_FACETS_LAZY) => self.activate_facets_lazy(route, args)?,
+            Some(COMPUTE_FACETS) => self.compute_facets(nav, facets, route, args)?,
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub fn activate_facets(
+        &mut self,
+        nav: &mut Navigator,
+        facets: &mut Vec<String>,
+        route: &mut Vec<String>,
+        args: Vec<String>,
+    ) -> Result<()> {
+        route.extend(args);
+
+        *facets = nav
+            .facet_inducing_atoms(route.iter())
+            .ok_or(NavigatorError::None)?
+            .iter()
+            .map(|f| lex::repr(*f))
+            .collect();
+
+        Ok(())
+    }
+
+    pub fn activate_facets_lt(
+        &mut self,
+        nav: &mut Navigator,
+        facets: &mut Vec<String>,
+        route: &mut Vec<String>,
+        args: Vec<String>,
+    ) -> Result<()> {
+        route.extend(args);
+
+        *facets = nav
+            .learned_that(facets, route, None)
+            .ok_or(NavigatorError::None)?;
+
+        Ok(())
+    }
+
+    pub fn activate_facets_lazy(
+        &mut self,
+        route: &mut Vec<String>,
+        args: Vec<String>,
+    ) -> Result<()> {
+        route.extend(args);
+        Ok(())
+    }
+
+    pub fn compute_facets(
+        &mut self,
+        nav: &mut Navigator,
+        facets: &mut Vec<String>,
+        route: &mut Vec<String>,
+        args: Vec<String>,
+    ) -> Result<()> {
+        *facets = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+            nav.facet_inducing_atoms(route.iter())
+                .ok_or(NavigatorError::None)?
+                .iter()
+                .map(|f| lex::repr(*f))
+                .filter(|a| re.is_match(&a))
+                .collect::<Vec<_>>()
+        } else {
+            nav.facet_inducing_atoms(route.iter())
+                .ok_or(NavigatorError::None)?
+                .iter()
+                .map(|f| lex::repr(*f))
+                .collect()
+        };
+        Ok(())
+    }
+}
