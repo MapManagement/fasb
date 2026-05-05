@@ -16,7 +16,6 @@ mod significance;
 mod wfc;
 #[cfg(feature = "interpreter")]
 use crate::config::PROMPT;
-use crate::interpreter::Evaluate;
 use crate::modes::Mode;
 
 #[cfg(not(feature = "interpreter"))]
