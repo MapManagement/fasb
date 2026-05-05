@@ -40,7 +40,7 @@ impl Mode<Option<usize>> {
             Some(COMPUTE_FACETS) => self.compute_facets(nav, facets, route, args)?,
             Some(ENTAILMENT) => self.entailment(nav, atoms, route, args)?,
             Some(COMPUTE_FACETS_SU) => self.compute_facets_su(nav, atoms, facets, route, args)?,
-            Some("!?soe") => self.soe(nav, atoms, facets, route, args)?,
+            Some("!?soe") => self.compute_facets_soe_projecting(nav, atoms, facets, route, args)?,
             Some(IS_FACET_R) => self.is_facet_r(nav, atoms, facets, args)?,
             Some(IS_FACET) => self.is_facet(nav, args)?,
             Some(WEIGHTED_FACET_COUNT) => self.weighted_facet_count(nav, route, args)?,
@@ -49,9 +49,7 @@ impl Mode<Option<usize>> {
             Some(SHOW_FACETS) => self.show_facets(facets, args)?,
             Some(FACET_COUNT) => self.facet_count(facets)?,
             Some(FACET_COUNTS) => self.facet_counts(nav, facets, route, args)?,
-            Some(FACET_COUNTS_PROJECTING) => {
-                self.facet_counts_projecting(nav, atoms, facets, route, args)?
-            }
+            Some(FACET_COUNTS_PROJECTING) => self.facet_counts_projecting(nav, atoms, facets, route, args)?,
             Some(ANSWER_SET_COUNT) => self.answer_set_count(nav, route, args)?,
             Some(ANSWER_SET_COUNTS) => self.answer_set_counts(nav, facets, route, args)?,
             Some(SHOW_ROUTE) => self.show_route(route, ctx)?,
@@ -63,12 +61,12 @@ impl Mode<Option<usize>> {
             Some(TAKE_STEP) => self.take_step(nav, facets, route, args)?,
             Some(QUIT) => std::process::exit(0),
             Some("man") => crate::config::manual(),
-            Some("\\") => self.backslash(nav, atoms, facets, route, args, ctx)?, // auch kein guter Name
+            Some("\\") => self.execute_loop(nav, atoms, facets, route, args, ctx)?, 
             Some(IS_ATOM) => self.is_atom(nav, args)?,
             Some(SHOW_ATOMS) => self.show_atoms(nav)?,
             Some(FILTER_ATOMS) => self.filter_atoms(args, atoms)?,
             Some(SHOW_PROGRAM) => self.show_program(nav)?,
-            Some(SOE) => self.soe2(nav, facets, args)?, // umbenennen
+            Some(SOE) => self.sieve_facets(nav, facets, args)?,
             Some(CONTEXT) => self.context(nav, facets, route, args, ctx)?,
             Some(SIGNIFICANCE) => self.significance(nav, facets, route, args)?,
             Some(SIGNIFICANCE_PROJECTING) => {
@@ -90,7 +88,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        route.to_vec().extend(args);
+        route.extend(args);
 
         *facets = nav
             .facet_inducing_atoms(route.iter())
@@ -241,7 +239,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        let xs = if let Some(re) = args.get(1).and_then(|s| Regex::new(s).ok()) {
+        let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(s).ok()) {
             atoms
                 .iter()
                 .filter(|a| re.is_match(a))
@@ -279,7 +277,7 @@ impl Mode<Option<usize>> {
         Ok(())
     }
 
-    pub fn soe(
+    pub fn compute_facets_soe_projecting(
         &mut self,
         nav: &mut Navigator,
         atoms: &mut Vec<String>,
@@ -287,7 +285,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        let xs = if let Some(re) = args.get(1).and_then(|s| Regex::new(s).ok()) {
+        let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(s).ok()) {
             atoms
                 .iter()
                 .filter(|a| re.is_match(a))
@@ -339,7 +337,7 @@ impl Mode<Option<usize>> {
     ) -> Result<()> {
         let mut fs = vec![];
         let mut k = 0;
-        let xs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             atoms.iter().filter(|a| re.is_match(a)).collect::<Vec<_>>()
         } else {
             atoms.iter().collect::<Vec<_>>()
@@ -376,7 +374,7 @@ impl Mode<Option<usize>> {
     }
 
     pub fn is_facet(&mut self, nav: &mut Navigator, args: Vec<String>) -> Result<()> {
-        if let Some(x) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        if let Some(x) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             println!("{:?}", is_facet::is_facet(nav, x.to_string()))
         }
         Ok(())
@@ -389,7 +387,7 @@ impl Mode<Option<usize>> {
         args: Vec<String>,
     ) -> Result<()> {
         match args
-            .get(1)
+            .get(0)
             .and_then(|filename| parse_weighted_facets_from_file(filename))
             .and_then(|wfcs| weighted_facet_count(nav, route.to_vec(), wfcs))
         {
@@ -406,7 +404,7 @@ impl Mode<Option<usize>> {
         args: Vec<String>,
     ) -> Result<()> {
         match args
-            .get(1)
+            .get(0)
             .and_then(|filename| parse_weighted_facets_from_file(filename))
         {
             Some(wfcs) => {
@@ -461,7 +459,7 @@ impl Mode<Option<usize>> {
     }
 
     pub fn show_facets(&mut self, facets: &mut Vec<String>, args: Vec<String>) -> Result<()> {
-        if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             facets
                 .iter()
                 .filter(|f| re.is_match(f))
@@ -490,7 +488,7 @@ impl Mode<Option<usize>> {
         } as f32;
         let mut weight = Weight::FacetCounting;
 
-        if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             for f in facets.iter().filter(|f| re.is_match(f)) {
                 route.push(f.to_owned());
                 count(&mut weight, nav, route.iter())
@@ -534,7 +532,7 @@ impl Mode<Option<usize>> {
         } as f32;
         let mut weight = Weight::FacetCounting;
 
-        let xs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             atoms
                 .iter()
                 .filter(|a| re.is_match(a))
@@ -614,7 +612,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             let mut weight = Weight::AnswerSetCounting;
             let ovr_count = match self {
                 Self::MaxWeightedAnswerSetCounting(Some(c)) => *c,
@@ -721,7 +719,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        let fs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        let fs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             facets
                 .iter()
                 .filter(|f| re.is_match(f))
@@ -746,7 +744,7 @@ impl Mode<Option<usize>> {
         args: Vec<String>,
     ) -> Result<()> {
         let start = Instant::now();
-        let fs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        let fs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             facets
                 .iter()
                 .filter(|f| re.is_match(f))
@@ -797,7 +795,7 @@ impl Mode<Option<usize>> {
         Ok(())
     }
 
-    pub fn backslash(
+    pub fn execute_loop(
         &mut self,
         nav: &mut Navigator,
         atoms: &mut Vec<String>,
@@ -995,7 +993,7 @@ impl Mode<Option<usize>> {
     }
 
     pub fn is_atom(&mut self, nav: &mut Navigator, args: Vec<String>) -> Result<()> {
-        match args.get(1).and_then(|a| nav.is_known(a.to_owned())) {
+        match args.get(0).and_then(|a| nav.is_known(a.to_owned())) {
             Some(v) => println!("{v}"),
             _ => println!("error: invalid atom"),
         }
@@ -1012,7 +1010,7 @@ impl Mode<Option<usize>> {
 
     pub fn filter_atoms(&mut self, args: Vec<String>, atoms: &mut Vec<String>) -> Result<()> {
         let mut k = 0;
-        if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             atoms.iter().filter(|f| re.is_match(f)).for_each(|f| {
                 k += 1;
                 print!("{} ", f)
@@ -1032,13 +1030,13 @@ impl Mode<Option<usize>> {
         Ok(())
     }
 
-    pub fn soe2(
+    pub fn sieve_facets(
         &mut self,
         nav: &mut Navigator,
         facets: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        let fs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        let fs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
             facets
                 .iter()
                 .filter(|f| re.is_match(f))
@@ -1065,7 +1063,7 @@ impl Mode<Option<usize>> {
 
         ctx.clear();
 
-        match args.get(1) {
+        match args.get(0) {
             Some(cnf) => {
                 ctx.push(cnf.to_string());
 
@@ -1107,7 +1105,7 @@ impl Mode<Option<usize>> {
         args: Vec<String>,
     ) -> Result<()> {
         let start = Instant::now();
-        let y = args.get(1).unwrap();
+        let y = args.get(0).unwrap();
         if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
             nav.significance(&route, y.to_owned(), &facets, re)
         }
@@ -1123,7 +1121,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
         args: Vec<String>,
     ) -> Result<()> {
-        let y = args.get(1).unwrap();
+        let y = args.get(0).unwrap();
 
         let xs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
             atoms
@@ -1152,7 +1150,7 @@ impl Mode<Option<usize>> {
 
         nav.add_rule(s.clone())?;
 
-        if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+        if let Some(re) = args.get(2).and_then(|s| Regex::new(r#s).ok()) {
             nav.significance_projecting(&route, y.to_owned(), &facets, re)
         }
 
@@ -1168,7 +1166,7 @@ impl Mode<Option<usize>> {
         route: &mut Vec<String>,
     ) -> Result<()> {
         let n = nav.enumerate_projected_solutions(
-            args.get(1).and_then(|n| n.parse::<usize>().ok()).take(),
+            args.get(0).and_then(|n| n.parse::<usize>().ok()).take(),
             route.iter().chain(args.iter().skip(1)).map(String::as_str),
             facets.clone(),
         )?;
