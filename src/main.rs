@@ -12,6 +12,7 @@ mod config;
 mod interpreter;
 mod is_facet;
 mod modes;
+mod py_navigator;
 mod significance;
 mod wfc;
 #[cfg(feature = "interpreter")]
@@ -20,7 +21,6 @@ use crate::modes::Mode;
 
 #[cfg(not(feature = "interpreter"))]
 fn main() -> Result<()> {
-
     let mut input = std::env::args().skip(1);
     let arg = match input.next() {
         Some(s) => s,
