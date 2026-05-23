@@ -6,6 +6,8 @@ use rustyline::DefaultEditor;
 use savan::lex;
 use savan::nav::errors::{NavigatorError, Result};
 use savan::nav::{facets::Facets, Navigator};
+#[cfg(not(feature = "interpreter"))]
+use std::error::Error;
 use std::fs::read_to_string;
 use std::path::Path;
 mod config;
@@ -17,7 +19,11 @@ mod significance;
 mod wfc;
 #[cfg(feature = "interpreter")]
 use crate::config::PROMPT;
+#[cfg(not(feature = "interpreter"))]
+use crate::interpreter::command;
 use crate::modes::Mode;
+#[cfg(not(feature = "interpreter"))]
+use crate::py_navigator::PyNavigator;
 
 #[cfg(not(feature = "interpreter"))]
 fn main() -> Result<()> {
@@ -73,9 +79,11 @@ fn main() -> Result<()> {
         env!("CARGO_PKG_VERSION")
     );
 
-    let mut nav = Navigator::new(lp.clone(), args.clone())?;
+    let mut py_nav =
+        PyNavigator::new(lp.clone(), args.clone()).map_err(|_| NavigatorError::None)?;
     let mut mode = Mode::GoalOriented(None::<usize>);
-    let mut atoms = nav
+    let mut atoms = py_nav
+        .nav
         .atoms()
         .filter(|a| filter_re.is_match(a))
         .collect::<Vec<String>>();
@@ -84,13 +92,15 @@ fn main() -> Result<()> {
 
     let mut facets = if facets_at_startup {
         match learned_that_at_startup {
-            false => nav
+            false => py_nav
+                .nav
                 .facet_inducing_atoms(route.iter())
                 .ok_or(NavigatorError::None)?
                 .into_iter()
                 .map(lex::repr)
                 .collect::<Vec<_>>(),
-            _ => nav
+            _ => py_nav
+                .nav
                 .learned_that(&atoms, &route, None)
                 .ok_or(NavigatorError::None)?,
         }
@@ -100,7 +110,7 @@ fn main() -> Result<()> {
 
     let mut rl = DefaultEditor::new().map_err(|_| NavigatorError::None)?;
 
-    for a in nav.atoms() {
+    for a in py_nav.nav.atoms() {
         if let Err(err) = rl.add_history_entry(a.as_str()) {
             eprintln!("ReadlineError: {:?}", err);
         }
@@ -113,14 +123,8 @@ fn main() -> Result<()> {
                     eprintln!("ReadlineError: {:?}", err);
                 }
 
-                mode.command(
-                    line,
-                    &mut nav,
-                    &mut atoms,
-                    &mut facets,
-                    &mut route,
-                    &mut cnf,
-                )?;
+                (atoms, facets, route, cnf) = command(line, &mut py_nav, atoms, facets, route, cnf)
+                    .map_err(|_| NavigatorError::None)?;
             }
             Err(ReadlineError::Interrupted) => {}
             Err(ReadlineError::Eof) => {
