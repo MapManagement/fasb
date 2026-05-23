@@ -70,13 +70,13 @@ pub fn compute_facets(
     args: Vec<String>,
 ) -> PyResult<Vec<String>> {
     let start = Instant::now();
-    let facets = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    let facets = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         nav.nav
             .facet_inducing_atoms(route.iter())
             .ok_or(PyRuntimeError::new_err("compute_facets failed"))?
             .iter()
             .map(|f| lex::repr(*f))
-            .filter(|a| re.is_match(&a))
+            .filter(|a| re.is_match(a))
             .collect::<Vec<_>>()
     } else {
         nav.nav
@@ -99,7 +99,7 @@ pub fn entailment(
 ) -> PyResult<()> {
     let start = Instant::now();
 
-    let fst = args.get(0).map(|s| s.as_str());
+    let fst = args.first().map(|s| s.as_str());
     let regex = args.get(1).and_then(|s| Regex::new(s).ok());
 
     match fst {
@@ -179,7 +179,7 @@ pub fn compute_facets_su(
     route: Vec<String>,
     args: Vec<String>,
 ) -> PyResult<Vec<String>> {
-    let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(s).ok()) {
+    let xs = if let Some(re) = args.first().and_then(|s| Regex::new(s).ok()) {
         atoms
             .iter()
             .filter(|a| re.is_match(a))
@@ -231,7 +231,7 @@ pub fn compute_facets_soe_projecting(
     route: Vec<String>,
     args: Vec<String>,
 ) -> PyResult<Vec<String>> {
-    let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(s).ok()) {
+    let xs = if let Some(re) = args.first().and_then(|s| Regex::new(s).ok()) {
         atoms
             .iter()
             .filter(|a| re.is_match(a))
@@ -286,7 +286,7 @@ pub fn get_is_facet_r(
 ) -> PyResult<Vec<String>> {
     let mut fs = vec![];
     let mut k = 0;
-    let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    let xs = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         atoms.iter().filter(|a| re.is_match(a)).collect::<Vec<_>>()
     } else {
         atoms.iter().collect::<Vec<_>>()
@@ -330,7 +330,7 @@ pub fn get_is_facet_r(
 // this is "is_facet" in Mode enum
 #[pyfunction]
 pub fn get_is_facet(nav: &mut PyNavigator, args: Vec<String>) -> PyResult<()> {
-    if let Some(x) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    if let Some(x) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         println!("{:?}", is_facet::is_facet(&mut nav.nav, x.to_string()))
     }
 
@@ -344,7 +344,7 @@ pub fn get_weighted_facet_count(
     args: Vec<String>,
 ) -> PyResult<()> {
     match args
-        .get(0)
+        .first()
         .and_then(|filename| parse_weighted_facets_from_file(filename))
         .and_then(|wfcs| weighted_facet_count(&mut nav.nav, route.to_vec(), wfcs))
     {
@@ -362,7 +362,7 @@ pub fn weighted_facet_counts(
     args: Vec<String>,
 ) -> PyResult<Vec<String>> {
     match args
-        .get(0)
+        .first()
         .and_then(|filename| parse_weighted_facets_from_file(filename))
     {
         Some(wfcs) => {
@@ -424,7 +424,7 @@ pub fn enumerate_solutions(
 
 #[pyfunction]
 pub fn show_facets(facets: Vec<String>, args: Vec<String>) -> PyResult<()> {
-    if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         facets
             .iter()
             .filter(|f| re.is_match(f))
@@ -454,7 +454,7 @@ pub fn facet_counts(
     let ovr_count = (2 * facets.len()) as f32;
     let mut weight = Weight::FacetCounting;
 
-    if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         for f in facets.iter().filter(|f| re.is_match(f)) {
             route.push(f.to_owned());
             count(&mut weight, &mut nav.nav, route.iter())
@@ -496,7 +496,7 @@ pub fn facet_counts_projecting(
     let ovr_count = (2 * facets.len()) as f32;
     let mut weight = Weight::FacetCounting;
 
-    let xs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    let xs = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         atoms
             .iter()
             .filter(|a| re.is_match(a))
@@ -591,7 +591,7 @@ pub fn answer_set_counts(
     let ovr_count = (count(&mut weight, &mut nav.nav, route.iter())
         .ok_or(PyRuntimeError::new_err("answer_set_counts failed"))?) as f32;
 
-    if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         for f in facets.iter().filter(|f| re.is_match(f)) {
             route.push(f.to_owned());
             count(&mut weight, &mut nav.nav, route.iter())
@@ -624,8 +624,8 @@ pub fn answer_set_counts(
 
 #[pyfunction]
 pub fn show_route(route: Vec<String>, ctx: Vec<String>) -> PyResult<()> {
-    if !ctx.is_empty() {
-        ctx.first().map(|f| println!("{f}"));
+    if let Some(f) = ctx.first() {
+        println!("{f}")
     }
 
     route.iter().for_each(|f| print!("{f} "));
@@ -679,7 +679,7 @@ pub fn propose_step(
     route: Vec<String>,
     args: Vec<String>,
 ) -> PyResult<Vec<String>> {
-    let fs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    let fs = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         facets
             .iter()
             .filter(|f| re.is_match(f))
@@ -718,7 +718,7 @@ pub fn take_step(
     args: Vec<String>,
 ) -> PyResult<(Vec<String>, Vec<String>)> {
     let start = Instant::now();
-    let fs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    let fs = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         facets
             .iter()
             .filter(|f| re.is_match(f))
@@ -1038,7 +1038,7 @@ pub fn execute_loop(
 
 #[pyfunction]
 pub fn is_atom(nav: &mut PyNavigator, args: Vec<String>) -> PyResult<()> {
-    match args.get(0).and_then(|a| nav.nav.is_known(a.to_owned())) {
+    match args.first().and_then(|a| nav.nav.is_known(a.to_owned())) {
         Some(v) => println!("{v}"),
         _ => println!("error: invalid atom"),
     }
@@ -1060,7 +1060,7 @@ pub fn show_atoms(nav: &mut PyNavigator) -> PyResult<()> {
 #[pyfunction]
 pub fn filter_atoms(args: Vec<String>, atoms: Vec<String>) -> PyResult<()> {
     let mut k = 0;
-    if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         atoms.iter().filter(|f| re.is_match(f)).for_each(|f| {
             k += 1;
             print!("{} ", f)
@@ -1086,7 +1086,7 @@ pub fn show_program(nav: &mut PyNavigator) -> PyResult<()> {
 
 #[pyfunction]
 pub fn sieve_facets(nav: &mut PyNavigator, facets: Vec<String>, args: Vec<String>) -> PyResult<()> {
-    let fs = if let Some(re) = args.get(0).and_then(|s| Regex::new(r#s).ok()) {
+    let fs = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
         facets
             .iter()
             .filter(|f| re.is_match(f))
@@ -1116,32 +1116,29 @@ pub fn context(
 
     ctx.clear();
 
-    match args.get(0) {
-        Some(cnf) => {
-            ctx.push(cnf.to_string());
+    if let Some(cnf) = args.first() {
+        ctx.push(cnf.to_string());
 
-            let clauses = cnf.split("&");
-            for clause in clauses {
-                let body = clause
-                    .split("|")
-                    .map(|lit| match lit.starts_with('~') {
-                        true => lit[1..].to_owned(),
-                        _ => format!("not {lit}"),
-                    })
-                    .collect::<Vec<_>>()
-                    .join(",");
+        let clauses = cnf.split("&");
+        for clause in clauses {
+            let body = clause
+                .split("|")
+                .map(|lit| match lit.starts_with('~') {
+                    true => lit[1..].to_owned(),
+                    _ => format!("not {lit}"),
+                })
+                .collect::<Vec<_>>()
+                .join(",");
 
-                let ic = format!(":- {body}. ");
+            let ic = format!(":- {body}. ");
 
-                ctx.push(ic.clone());
+            ctx.push(ic.clone());
 
-                nav.nav
-                    .add_rule(ic)
-                    .map_err(|_| PyRuntimeError::new_err("context failed"))?;
-            }
+            nav.nav
+                .add_rule(ic)
+                .map_err(|_| PyRuntimeError::new_err("context failed"))?;
         }
-        _ => (),
-    };
+    }
 
     let facets: Vec<String> = nav
         .nav
@@ -1162,7 +1159,7 @@ pub fn significance(
     args: Vec<String>,
 ) -> PyResult<()> {
     let start = Instant::now();
-    let y = args.get(0).unwrap();
+    let y = args.first().unwrap();
 
     if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
         nav.nav.significance(&route, y.to_owned(), &facets, re)
@@ -1181,7 +1178,7 @@ pub fn significance_projecting(
     route: Vec<String>,
     args: Vec<String>,
 ) -> PyResult<()> {
-    let y = args.get(0).unwrap();
+    let y = args.first().unwrap();
 
     let xs = if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
         atoms
@@ -1235,7 +1232,7 @@ pub fn enumerate_projected_solutions(
     let n = nav
         .nav
         .enumerate_projected_solutions(
-            args.get(0).and_then(|n| n.parse::<usize>().ok()).take(),
+            args.first().and_then(|n| n.parse::<usize>().ok()).take(),
             route.iter().chain(args.iter().skip(1)).map(String::as_str),
             facets.clone(),
         )
@@ -1261,9 +1258,9 @@ pub fn command(
     expr: String,
     nav: &mut PyNavigator,
     atoms: Vec<String>,
-    facets: Vec<String>,
-    route: Vec<String>,
-    ctx: Vec<String>,
+    mut facets: Vec<String>,
+    mut route: Vec<String>,
+    mut ctx: Vec<String>,
 ) -> PyResult<(Vec<String>, Vec<String>, Vec<String>, Vec<String>)> {
     let mut parts = expr.split_whitespace();
     let command = parts.next();
@@ -1271,105 +1268,81 @@ pub fn command(
 
     match command {
         Some(ACTIVATE_FACETS) => {
-            let (facets, route) = activate_facets(nav, route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            (facets, route) = activate_facets(nav, route, args)?;
         }
         Some(ACTIVATE_FACETS_LT) => {
-            let (facets, route) = activate_facets_lt(nav, facets, route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            (facets, route) = activate_facets_lt(nav, facets, route, args)?;
         }
         Some(ACTIVATE_FACETS_LAZY) => {
-            let route = activate_facets_lazy(route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            route = activate_facets_lazy(route, args)?;
         }
         Some(COMPUTE_FACETS) => {
-            let facets = compute_facets(nav, route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
+            facets = compute_facets(nav, route.clone(), args)?;
         }
         Some(ENTAILMENT) => {
             entailment(nav, atoms.clone(), route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(COMPUTE_FACETS_SU) => {
-            let facets = compute_facets_su(nav, atoms.clone(), route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
+            facets = compute_facets_su(nav, atoms.clone(), route.clone(), args)?;
         }
         Some("!?soe") => {
-            let facets = compute_facets_soe_projecting(nav, atoms.clone(), route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
+            facets = compute_facets_soe_projecting(nav, atoms.clone(), route.clone(), args)?;
         }
         Some(IS_FACET_R) => {
-            let facets = get_is_facet_r(nav, atoms.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
+            facets = get_is_facet_r(nav, atoms.clone(), args)?;
         }
         Some(IS_FACET) => {
             get_is_facet(nav, args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(WEIGHTED_FACET_COUNT) => {
             get_weighted_facet_count(nav, route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(WEIGHTED_FACET_COUNTS) => {
-            let route = weighted_facet_counts(nav, facets.clone(), route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            route = weighted_facet_counts(nav, facets.clone(), route, args)?;
         }
         Some(ENUMERATE_SOLUTIONS) => {
             enumerate_solutions(nav, route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(SHOW_FACETS) => {
             show_facets(facets.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(FACET_COUNT) => {
             facet_count(facets.clone())?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(FACET_COUNTS) => {
-            let route = facet_counts(nav, facets.clone(), route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            route = facet_counts(nav, facets.clone(), route, args)?;
         }
         Some(FACET_COUNTS_PROJECTING) => {
-            let route = facet_counts_projecting(nav, atoms.clone(), facets.clone(), route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            route = facet_counts_projecting(nav, atoms.clone(), facets.clone(), route, args)?;
         }
         Some(ANSWER_SET_COUNT) => {
             answer_set_count(nav, route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(ANSWER_SET_COUNTS) => {
-            let route = answer_set_counts(nav, facets.clone(), route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            route = answer_set_counts(nav, facets.clone(), route, args)?;
         }
         Some(SHOW_ROUTE) => {
             show_route(route.clone(), ctx.clone())?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(DEL_LAST) => {
-            let facets = del_last(nav, route.clone())?;
-            return Ok((atoms, facets, route, ctx));
+            facets = del_last(nav, route.clone())?;
         }
         Some(CLEAR_ROUTE) => {
-            let (route, facets) = clear_route(nav, route)?;
-            return Ok((atoms, facets, route, ctx));
+            (route, facets) = clear_route(nav, route)?;
         }
         //Some(DISPLAY_MODE) => display_mode()?,
         //Some(CHANGE_MODE) => change_mode(args)?,
         Some(PROPOSE_STEP) => {
-            let route = propose_step(nav, facets.clone(), route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            route = propose_step(nav, facets.clone(), route, args)?;
         }
         Some(TAKE_STEP) => {
-            let (facets, route) = take_step(nav, facets, route, args)?;
-            return Ok((atoms, facets, route, ctx));
+            (facets, route) = take_step(nav, facets, route, args)?;
         }
         Some(QUIT) => {
             std::process::exit(0);
         }
         Some("man") => {
             crate::config::manual();
-            return Ok((atoms, facets, route, ctx));
         }
         Some("\\") => {
             execute_loop(
@@ -1380,43 +1353,33 @@ pub fn command(
                 args,
                 ctx.clone(),
             )?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(IS_ATOM) => {
             is_atom(nav, args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(SHOW_ATOMS) => {
             show_atoms(nav)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(FILTER_ATOMS) => {
             filter_atoms(args, atoms.clone())?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(SHOW_PROGRAM) => {
             show_program(nav)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(SOE) => {
             sieve_facets(nav, facets.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(CONTEXT) => {
-            let (ctx, facets) = context(nav, route.clone(), args, ctx)?;
-            return Ok((atoms, facets, route, ctx));
+            (ctx, facets) = context(nav, route.clone(), args, ctx)?;
         }
         Some(SIGNIFICANCE) => {
             significance(nav, facets.clone(), route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(SIGNIFICANCE_PROJECTING) => {
             significance_projecting(nav, facets.clone(), atoms.clone(), route.clone(), args)?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(ENUMERATE_PROJECTED_SOLUTIONS) => {
             enumerate_projected_solutions(nav, args, route.clone(), facets.clone())?;
-            return Ok((atoms, facets, route, ctx));
         }
         Some(cmd) => handle_unknown(cmd)?,
         _ => eprintln!("unknown error"),
