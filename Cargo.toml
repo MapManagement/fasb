@@ -1,7 +1,7 @@
 [package]
 name = "fasb"
 version = "0.2.9"
-edition = "2021"
+edition = "2024"
 authors = ["drwadu"]
 description = "fasb - faceted answer set browser"
 repository = "https://github.com/drwadu/fasb"
@@ -17,10 +17,14 @@ pyo3 = "0.28.3"
 [features]
 interpreter = []
 
+[lib]
+name = "fasb"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "fasb"
-path = "src/main.rs"
-edition = "2021"   
+path = "src/bin.rs"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
