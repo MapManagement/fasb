@@ -14,7 +14,7 @@ pub mod fasb {
     #[cfg(feature = "interpreter")]
     use crate::config::PROMPT;
     #[cfg(not(feature = "interpreter"))]
-    use crate::interpreter::command;
+    use crate::interpreter::interpreter::command;
     use crate::modes::Mode;
     #[cfg(not(feature = "interpreter"))]
     use crate::py_navigator::PyNavigator;
@@ -31,6 +31,9 @@ pub mod fasb {
     use std::path::Path;
 
     use pyo3::prelude::*;
+
+    #[pymodule_export]
+    use crate::interpreter::interpreter;
 
     #[cfg(not(feature = "interpreter"))]
     #[pyfunction]
