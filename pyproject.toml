@@ -1,0 +1,21 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "fasb"
+version = "0.2.9"
+description = "fasb - faceted answer set browser"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "drwadu" }]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[tool.maturin]
+module-name = "fasb"
+features = ["extension-module"]
+bindings = "pyo3"
