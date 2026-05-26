@@ -4,3 +4,4 @@ Cargo.lock
 /misc
 test.fsb
 /pexp
+.DS_Store # MacOS metafile

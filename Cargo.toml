@@ -16,6 +16,7 @@ pyo3 = "0.28.3"
 
 [features]
 interpreter = []
+extension-module = ["pyo3/extension-module"]
 
 [lib]
 name = "fasb"
