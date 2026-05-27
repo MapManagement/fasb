@@ -59,11 +59,4 @@ pub mod wrappers_bindings {
 
         Ok((active, result))
     }
-
-    #[pymodule]
-    pub fn py_wrappers(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
-        m.add_class::<ModeOptionUsize>()?;
-        m.add_class::<PyNavigator>()?;
-        Ok(())
-    }
 }
