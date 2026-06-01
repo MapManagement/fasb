@@ -1,15 +1,14 @@
 #[pyo3::pymodule]
-pub mod interpreter {
-
+pub mod interpreter_bindings {
     use crate::config::*;
     use crate::is_facet;
     use crate::modes::Mode;
-    use crate::py_navigator::ModeOptionUsize;
-    use crate::py_navigator::perform_next_step_option_usize;
-    use crate::py_navigator::{PyNavigator, propose_next_step_option_usize};
     use crate::significance::Significance;
     use crate::wfc::parse_weighted_facets_from_file;
     use crate::wfc::weighted_facet_count;
+    use crate::wrappers::wrappers_bindings::ModeOptionUsize;
+    use crate::wrappers::wrappers_bindings::perform_next_step_option_usize;
+    use crate::wrappers::wrappers_bindings::{PyNavigator, propose_next_step_option_usize};
     use indicatif::{ProgressBar, ProgressState, ProgressStyle};
     use pyo3::exceptions::PyRuntimeError;
     use pyo3::prelude::*;

@@ -2,9 +2,9 @@ mod config;
 mod interpreter;
 mod is_facet;
 mod modes;
-mod py_navigator;
 mod significance;
 mod wfc;
+mod wrappers;
 
 #[pyo3::pymodule]
 pub mod fasb {
@@ -14,10 +14,11 @@ pub mod fasb {
     #[cfg(feature = "interpreter")]
     use crate::config::PROMPT;
     #[cfg(not(feature = "interpreter"))]
-    use crate::interpreter::interpreter::command;
+    use crate::interpreter::interpreter_bindings::command;
     use crate::modes::Mode;
     #[cfg(not(feature = "interpreter"))]
-    use crate::py_navigator::PyNavigator;
+    use crate::wrappers::wrappers_bindings::PyNavigator;
+    use pyo3::prelude::*;
     #[cfg(not(feature = "interpreter"))]
     use pyo3::pyfunction;
     use regex::Regex;
@@ -30,10 +31,11 @@ pub mod fasb {
     use std::fs::read_to_string;
     use std::path::Path;
 
-    use pyo3::prelude::*;
+    #[pymodule_export]
+    use crate::interpreter::interpreter_bindings;
 
     #[pymodule_export]
-    use crate::interpreter::interpreter;
+    use crate::wrappers::wrappers_bindings;
 
     #[cfg(not(feature = "interpreter"))]
     #[pyfunction]

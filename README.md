@@ -159,5 +159,6 @@ Currently you can use and import following (sub)modules:
 
 ```python
 import fasb # lib.rs
-from fasb import interpreter # interpreter.rs
+from fasb import interpreter_bindings # interpreter.rs
+from fasb import wrappers_bindings # wrappers.rs
 ```
