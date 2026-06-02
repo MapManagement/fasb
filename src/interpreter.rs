@@ -1391,8 +1391,10 @@ pub mod interpreter_bindings {
             Some(ENUMERATE_PROJECTED_SOLUTIONS) => {
                 enumerate_projected_solutions(nav, args, route.clone(), facets.clone())?;
             }
-            Some(cmd) => handle_unknown(cmd)?,
-            _ => eprintln!("unknown error"),
+            None => {
+                println!("noop [empty command]");
+            }
+            Some(cmd) => handle_unknown(cmd)?
         }
         Ok((atoms, facets, route, ctx))
     }
