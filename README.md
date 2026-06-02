@@ -168,7 +168,7 @@ from fasb import wrappers_bindings # wrappers.rs
 | Konstanten-Name | Zeichenfolge | Funktion | Vorgeschlagene Änderungen |
 |----------------|--------------|-----------|--------------------------|
 | WHILE_LOOP | `"while"` | Startet die Schleife (ersetzt das alte `\`) | |
-| WHILE_LOOP_COND_SEP | `" | "` | Trennt Bedingung von Befehlen | |
+| WHILE_LOOP_COND_SEP | `" \| "` | Trennt Bedingung von Befehlen | |
 | WHILE_LOOP_CMD_SEP | `"."` | Trennt mehrere Befehle voneinander | |
 | WHILE_LOOP_VAR_FACETS | `"#f"` | Variable: Aktuelle Facettenanzahl | |
 | WHILE_LOOP_VAR_ROUTE | `"#r"` | Variable: Aktuelle Routenlänge | |
@@ -220,7 +220,7 @@ from fasb import wrappers_bindings # wrappers.rs
 | SOE | `":soe"` | Zählt/Sammelt repräsentative Answer Sets | |
 | SIGNIFICANCE | `"%"` | Zeigt Signifikanz von Facetten für ein Literal | |
 | SIGNIFICANCE_PROJECTING | `"!%"` | Signifikanz unter Projektion | |
-| ENTAILMENT | `"|="` | Logische Folgerung (cautious/brave) | |
+| ENTAILMENT | `"\|="` | Logische Folgerung (cautious/brave) | |
 | DISPLAY_MODE | `":mode"` | Zeigt den Navigations-Modus | |
 | CHANGE_MODE | `"'"` | Ändert den Navigations-Modus | |
 | QUIT | `":q"` | Beendet den Interpreter | |
