@@ -3,13 +3,30 @@ use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
 use rustyline::{Context, Helper};
+use crate::config::*;
 
 // Commands from config.rs
-pub const COMMANDS: &[&str] = &[
-    "+", ":+", "+'", "?", "'!?", "!?", "#?", "#??", "!#??", "#?w", "#??w",
-    "#!", "#!!", "!", "!*", "@", "--", "-", "'", ":mode", "$", "$$",
-    ":src", ":atoms", ":filter_atoms", ":isatom", ":soe", ">", "%", "!%",
-    ":?", ":?r", "|=", ":q", "man", "!?soe", "\\",
+pub const FACET_COMMANDS: &[&str] = &[
+    ACTIVATE_FACETS, ACTIVATE_FACETS_LAZY, ACTIVATE_FACETS_LT,
+    SHOW_FACETS, COMPUTE_FACETS_SU, COMPUTE_FACETS,
+    FACET_COUNT, FACET_COUNTS, FACET_COUNTS_PROJECTING,
+    WEIGHTED_FACET_COUNT, WEIGHTED_FACET_COUNTS,
+    SHOW_ROUTE, CLEAR_ROUTE, DEL_LAST,
+    SIGNIFICANCE, SIGNIFICANCE_PROJECTING,
+    IS_FACET, IS_FACET_R,
+];
+
+pub const ATOM_COMMANDS: &[&str] = &[
+    SHOW_ATOMS, FILTER_ATOMS, IS_ATOM,
+    CONTEXT, ENTAILMENT, SOE,
+];
+
+pub const OTHER_COMMANDS: &[&str] = &[
+    ANSWER_SET_COUNT, ANSWER_SET_COUNTS,
+    ENUMERATE_SOLUTIONS, ENUMERATE_PROJECTED_SOLUTIONS,
+    CHANGE_MODE, DISPLAY_MODE,
+    PROPOSE_STEP, TAKE_STEP,
+    SHOW_PROGRAM, QUIT,
 ];
 
 pub struct FasbHelper {
@@ -19,7 +36,7 @@ pub struct FasbHelper {
 
 impl FasbHelper {
     pub fn new() -> Self {
-        Self { atoms: vec![], facets: vec![] }
+        Self { atoms: vec![], facets: vec![]}
     }
 
     // Update FasbHelper
@@ -50,12 +67,22 @@ impl Completer for FasbHelper {
 
         let candidates: Vec<Pair> = if is_first_token {
             // Case first token -> complete commands
-            COMMANDS
+            FACET_COMMANDS
                 .iter()
+                .chain(ATOM_COMMANDS)
+                .chain(OTHER_COMMANDS)
                 .filter(|c| c.starts_with(word))
                 .map(|c| Pair { display: c.to_string(), replacement: c.to_string() })
                 .collect()
         } else {
+            let first_word = line[..word_start]
+                .split_whitespace()
+                .next()
+                .unwrap_or("");
+
+            let use_atoms  = ATOM_COMMANDS.contains(&first_word);
+            let use_facets = FACET_COMMANDS.contains(&first_word);
+
             // Negation prefix handeling
             let (prefix, stem) = match word.strip_prefix('~') {
                 Some(rest) => ("~", rest),
@@ -64,17 +91,19 @@ impl Completer for FasbHelper {
 
             // Atoms first (the long ASP names), then facets, de-duplicated.
             let mut seen = std::collections::HashSet::new();
-            self.atoms
-                .iter()
-                .chain(self.facets.iter())
-                .filter(|name| name.starts_with(stem))
-                // deduplication through seen set
-                .filter(|name| seen.insert(name.as_str()))
-                .map(|name| {
-                    let full = format!("{prefix}{name}");
-                    Pair { display: full.clone(), replacement: full }
-                })
-                .collect()
+
+            let mut names: Vec<&String> = Vec::new();
+            if use_atoms  { names.extend(self.atoms.iter()); }
+            else if use_facets { names.extend(self.facets.iter()); }
+            else { names.extend(self.atoms.iter()); names.extend(self.facets.iter()); }
+
+            names.into_iter()
+            .filter(|name| name.starts_with(stem) && seen.insert(*name))
+            .map(|name| Pair {
+                display:     format!("{prefix}{name}"),
+                replacement: format!("{prefix}{name}"),
+            })
+            .collect()
         };
 
         Ok((word_start, candidates))
