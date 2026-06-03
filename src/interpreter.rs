@@ -1340,6 +1340,7 @@ pub mod interpreter_bindings {
             Some(CLEAR_ROUTE) => {
                 (route, facets) = clear_route(nav, route)?;
             }
+            // TODO: Display Mode not implemented
             //Some(DISPLAY_MODE) => display_mode()?,
             //Some(CHANGE_MODE) => change_mode(args)?,
             Some(PROPOSE_STEP) => {
