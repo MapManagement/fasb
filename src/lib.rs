@@ -1,4 +1,5 @@
 mod config;
+mod completer;
 mod interpreter;
 mod is_facet;
 mod modes;
@@ -23,7 +24,9 @@ pub mod fasb {
     use pyo3::pyfunction;
     use regex::Regex;
     #[cfg(not(feature = "interpreter"))]
-    use rustyline::DefaultEditor;
+    use crate::completer::FasbHelper;
+    #[cfg(not(feature = "interpreter"))]
+    use rustyline::{Editor, history::DefaultHistory, CompletionType, Config};
     #[cfg(not(feature = "interpreter"))]
     use rustyline::error::ReadlineError;
     use savan::lex;
@@ -102,8 +105,12 @@ pub mod fasb {
             vec![]
         };
 
-        let mut rl = DefaultEditor::new()
-            .map_err(|_| PyRuntimeError::new_err("DefaultEditor::new() failed"))?;
+        let config = Config::builder()
+            .completion_type(CompletionType::List)
+            .build();
+        let mut rl: Editor<FasbHelper, DefaultHistory> = Editor::with_config(config)
+            .map_err(|_| PyRuntimeError::new_err("Editor::with_config() failed"))?;
+        rl.set_helper(Some(FasbHelper::new()));
 
         for a in py_nav.nav.atoms() {
             if let Err(err) = rl.add_history_entry(a.as_str()) {
@@ -112,6 +119,11 @@ pub mod fasb {
         }
 
         loop {
+            // Refresh completion candidates
+            if let Some(helper) = rl.helper_mut() {
+                helper.update(&atoms, &facets);
+            }
+
             match rl.readline(crate::config::PROMPT) {
                 Ok(line) => {
                     if let Err(err) = rl.add_history_entry(line.as_str()) {
