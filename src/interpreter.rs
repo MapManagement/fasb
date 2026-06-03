@@ -1295,7 +1295,7 @@ pub mod interpreter_bindings {
             Some(COMPUTE_FACETS_SU) => {
                 facets = compute_facets_su(nav, atoms.clone(), route.clone(), args)?;
             }
-            Some("!?soe") => {
+            Some(COMPUTE_FACETS_SOE) => {
                 facets = compute_facets_soe_projecting(nav, atoms.clone(), route.clone(), args)?;
             }
             Some(IS_FACET_R) => {
@@ -1351,10 +1351,10 @@ pub mod interpreter_bindings {
             Some(QUIT) => {
                 std::process::exit(0);
             }
-            Some("man") => {
+            Some(MANUAL) => {
                 crate::config::manual();
             }
-            Some("\\") => {
+            Some(LOOP) => {
                 execute_loop(
                     nav,
                     atoms.clone(),
