@@ -1,5 +1,6 @@
-use fasb::fasb::start_fasb;
+use fasb::fasb::{start_fasb, start_fasb_interpreter};
 
+#[cfg(not(feature = "interpreter"))]
 pub fn main() {
     let mut input = std::env::args().skip(1);
     let arg = match input.next() {
@@ -25,4 +26,9 @@ pub fn main() {
     }
 
     let _ = start_fasb(args, arg, facets_at_startup, learned_that_at_startup);
+}
+
+#[cfg(feature = "interpreter")]
+pub fn main() {
+    let _ = start_fasb_interpreter();
 }
