@@ -1295,7 +1295,7 @@ pub mod interpreter_bindings {
             Some(COMPUTE_FACETS_SU) => {
                 facets = compute_facets_su(nav, atoms.clone(), route.clone(), args)?;
             }
-            Some("!?soe") => {
+            Some(COMPUTE_FACETS_SOE) => {
                 facets = compute_facets_soe_projecting(nav, atoms.clone(), route.clone(), args)?;
             }
             Some(IS_FACET_R) => {
@@ -1340,6 +1340,7 @@ pub mod interpreter_bindings {
             Some(CLEAR_ROUTE) => {
                 (route, facets) = clear_route(nav, route)?;
             }
+            // TODO: Display Mode not implemented
             //Some(DISPLAY_MODE) => display_mode()?,
             //Some(CHANGE_MODE) => change_mode(args)?,
             Some(PROPOSE_STEP) => {
@@ -1351,10 +1352,10 @@ pub mod interpreter_bindings {
             Some(QUIT) => {
                 std::process::exit(0);
             }
-            Some("man") => {
+            Some(MANUAL) => {
                 crate::config::manual();
             }
-            Some("\\") => {
+            Some(LOOP) => {
                 execute_loop(
                     nav,
                     atoms.clone(),
@@ -1391,8 +1392,10 @@ pub mod interpreter_bindings {
             Some(ENUMERATE_PROJECTED_SOLUTIONS) => {
                 enumerate_projected_solutions(nav, args, route.clone(), facets.clone())?;
             }
-            Some(cmd) => handle_unknown(cmd)?,
-            _ => eprintln!("unknown error"),
+            None => {
+                println!("noop [empty command]");
+            }
+            Some(cmd) => handle_unknown(cmd)?
         }
         Ok((atoms, facets, route, ctx))
     }
