@@ -105,7 +105,6 @@ pub mod interpreter_bindings {
         let start = Instant::now();
 
         let fst = args.first().map(|s| s.as_str());
-        let regex = args.get(1).and_then(|s| Regex::new(s).ok());
 
         match fst {
             Some("%") => {
@@ -114,7 +113,7 @@ pub mod interpreter_bindings {
                     .cautious_consequences(route.iter())
                     .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<Vec<_>>())
                 {
-                    if let Some(re) = regex {
+                    if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
                         for f in atoms.iter() {
                             if re.is_match(f) && xs.contains(f) {
                                 println!("{f}");
@@ -136,35 +135,59 @@ pub mod interpreter_bindings {
                     .brave_consequences(route.iter())
                     .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<Vec<_>>())
                 {
-                    for f in atoms.iter() {
-                        if regex.as_ref().map_or(true, |re| re.is_match(f)) && !xs.contains(f) {
-                            println!("{f}");
+                    if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
+                        for f in atoms.iter() {
+                            if re.is_match(f) && !xs.contains(f) {
+                                println!("{f}");
+                            }
+                        }
+                    } else {
+                        for f in atoms.iter() {
+                            if !xs.contains(f) {
+                                println!("{f}")
+                            }
                         }
                     }
                 }
             }
 
-            _ => {
+            Some(&_) | None => {
                 if let Some(bcs) = nav.nav.brave_consequences(route.iter()) {
                     if bcs.is_empty() {
                         println!("no answer set");
                     } else {
                         let bcs_str = bcs.iter().map(|f| lex::repr(*f)).collect::<Vec<_>>();
 
-                        for f in atoms.iter() {
-                            if !regex.as_ref().map_or(true, |re| re.is_match(f)) {
-                                continue;
-                            }
+                        if let Some(re) = fst.and_then(|s| Regex::new(r#s).ok()) {
+                            for f in atoms.iter() {
+                                if !re.is_match(f) {
+                                    continue;
+                                }
 
-                            if !bcs_str.contains(f) {
-                                println!("\x1b[0;30;41m{}\x1b[0m", f);
-                            } else {
-                                if let Ok(1) = nav.nav.enumerate_solutions_quietly(
-                                    Some(1),
-                                    route.iter().chain([format!("~{f}")].iter()),
-                                ) {
+                                if !bcs_str.contains(f) {
+                                    println!("\x1b[0;30;41m{}\x1b[0m", f);
                                 } else {
-                                    println!("\x1b[0;30;42m{}\x1b[0m", f);
+                                    if let Ok(1) = nav.nav.enumerate_solutions_quietly(
+                                        Some(1),
+                                        route.iter().chain([format!("~{f}")].iter()),
+                                    ) {
+                                    } else {
+                                        println!("\x1b[0;30;42m{}\x1b[0m", f);
+                                    }
+                                }
+                            }
+                        } else {
+                            for f in atoms.iter() {
+                                if !bcs_str.contains(f) {
+                                    println!("\x1b[0;30;41m{}\x1b[0m", f)
+                                } else {
+                                    if let Ok(1) = nav.nav.enumerate_solutions_quietly(
+                                        Some(1),
+                                        route.iter().chain([format!("~{f}")].iter()),
+                                    ) {
+                                    } else {
+                                        println!("\x1b[0;30;42m{}\x1b[0m", f)
+                                    }
                                 }
                             }
                         }
@@ -1119,9 +1142,7 @@ pub mod interpreter_bindings {
         args: Vec<String>,
         mut ctx: Vec<String>,
     ) -> PyResult<(Vec<String>, Vec<String>)> {
-        ctx.clone()
-            .into_iter()
-            .skip(1)
+        ctx.drain(1..)
             .for_each(|r| unsafe { nav.nav.remove_rule(r).unwrap_unchecked() });
 
         ctx.clear();
@@ -1272,7 +1293,7 @@ pub mod interpreter_bindings {
         mut route: Vec<String>,
         mut ctx: Vec<String>,
     ) -> PyResult<(Vec<String>, Vec<String>, Vec<String>, Vec<String>)> {
-        let mut parts = expr.split_whitespace();
+        let mut parts = expr.as_str().split_whitespace();
         let command = parts.next();
         let args: Vec<String> = parts.map(String::from).collect();
 
@@ -1395,7 +1416,7 @@ pub mod interpreter_bindings {
             None => {
                 println!("noop [empty command]");
             }
-            Some(cmd) => handle_unknown(cmd)?
+            Some(cmd) => handle_unknown(cmd)?,
         }
         Ok((atoms, facets, route, ctx))
     }
