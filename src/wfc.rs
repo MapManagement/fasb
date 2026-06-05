@@ -1,4 +1,4 @@
-use savan::nav::{facets::Facets, Navigator};
+use savan::nav::{Navigator, facets::Facets};
 
 #[derive(Debug, Clone)]
 pub struct WeightedFacet {

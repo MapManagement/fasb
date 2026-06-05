@@ -1395,7 +1395,7 @@ pub mod interpreter_bindings {
             None => {
                 println!("noop [empty command]");
             }
-            Some(cmd) => handle_unknown(cmd)?
+            Some(cmd) => handle_unknown(cmd)?,
         }
         Ok((atoms, facets, route, ctx))
     }
