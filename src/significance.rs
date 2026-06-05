@@ -1,7 +1,7 @@
 use regex::Regex;
 use savan::nav::{
-    weights::{count, count_projecting, Weight},
     Navigator,
+    weights::{Weight, count, count_projecting},
 };
 
 pub trait Significance {

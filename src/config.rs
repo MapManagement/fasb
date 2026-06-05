@@ -32,6 +32,15 @@ pub const SIGNIFICANCE_PROJECTING: &'static str = "!%";
 pub const COMPUTE_FACETS_SOE: &'static str = "!?soe";
 pub const MANUAL: &'static str = "man";
 pub const LOOP: &'static str = "\\";
+pub const LOOP_SEP: &'static str = "|";
+pub const LOOP_END: &'static str = ".";
+pub const NEQUAL: &'static str = "!=";
+pub const BIGGER: &'static str = ">";
+pub const BIGGEREQ: &'static str = ">=";
+pub const SMALLER: &'static str = "<"; // Duplicate in different context
+pub const SMALLEREQ: &'static str = "<=";
+pub const FCOUNT: &'static str = "#f";
+pub const RLENGTH: &'static str = "#r";
 pub const IS_FACET: &'static str = ":?";
 pub const IS_FACET_R: &'static str = ":?r";
 pub const ENTAILMENT: &'static str = "|=";
@@ -40,35 +49,87 @@ pub const QUIT: &'static str = ":q";
 pub const FILTER_KEYWORD: &'static str = "%filter ";
 
 pub(crate) fn manual() {
-    println!("display facet-inducing atoms                                                                  ->  {SHOW_FACETS}");
-    println!("display route                                                                                 ->  {SHOW_ROUTE}");
-    println!("enumerate n=[int] answer sets                                                                 ->  {ENUMERATE_SOLUTIONS} n");
-    println!("activate facets=[whitespace seperated literals, e.g., a ~b]                                   ->  {ACTIVATE_FACETS} facets"); 
-    println!("activate facets=[whitespace seperated literals, e.g., a ~b] and display consequences          ->  {ACTIVATE_FACETS_LT} facets");
-    println!("deactivate previous facet                                                                     ->  {DEL_LAST}");
-    println!("deactivate all facets                                                                         ->  {CLEAR_ROUTE}");
-    //println!("check whether regex-matched atoms are facets                                                  ->  {IS_FACET} regex"); 
-    //println!("check whether regex-matched atoms are facets with one consistency check                       ->  {IS_FACET_R} regex"); 
-    println!("declare cnf=[e.g., a|~b&c|d] context/query                                                    ->  {CONTEXT} cnf");
-    println!("select navigation mode=[{{{{min,max}}#{{f,a,s}}, go}}]                                              ->  {CHANGE_MODE} mode");
-    println!("next step in mode                                                                             ->  {PROPOSE_STEP}");
-    println!("perform next step in mode                                                                     ->  {TAKE_STEP}");
-    println!("compute facets among atoms that match targets=[regex]                                         ->  {COMPUTE_FACETS} targets");
-    println!("facet count of facet                                                                          ->  {FACET_COUNT} facet");
-    println!("facet counts under each facet filtered from current facets by regex                           ->  {FACET_COUNTS} regex");
+    println!(
+        "display facet-inducing atoms                                                                  ->  {SHOW_FACETS}"
+    );
+    println!(
+        "display route                                                                                 ->  {SHOW_ROUTE}"
+    );
+    println!(
+        "enumerate n=[int] answer sets                                                                 ->  {ENUMERATE_SOLUTIONS} n"
+    );
+    println!(
+        "activate facets=[whitespace seperated literals, e.g., a ~b]                                   ->  {ACTIVATE_FACETS} facets"
+    );
+    println!(
+        "activate facets=[whitespace seperated literals, e.g., a ~b] and display consequences          ->  {ACTIVATE_FACETS_LT} facets"
+    );
+    println!(
+        "deactivate previous facet                                                                     ->  {DEL_LAST}"
+    );
+    println!(
+        "deactivate all facets                                                                         ->  {CLEAR_ROUTE}"
+    );
+    //println!("check whether regex-matched atoms are facets                                                  ->  {IS_FACET} regex");
+    //println!("check whether regex-matched atoms are facets with one consistency check                       ->  {IS_FACET_R} regex");
+    println!(
+        "declare cnf=[e.g., a|~b&c|d] context/query                                                    ->  {CONTEXT} cnf"
+    );
+    println!(
+        "select navigation mode=[{{{{min,max}}#{{f,a,s}}, go}}]                                              ->  {CHANGE_MODE} mode"
+    );
+    println!(
+        "next step in mode                                                                             ->  {PROPOSE_STEP}"
+    );
+    println!(
+        "perform next step in mode                                                                     ->  {TAKE_STEP}"
+    );
+    println!(
+        "compute facets among atoms that match targets=[regex]                                         ->  {COMPUTE_FACETS} targets"
+    );
+    println!(
+        "facet count of facet                                                                          ->  {FACET_COUNT} facet"
+    );
+    println!(
+        "facet counts under each facet filtered from current facets by regex                           ->  {FACET_COUNTS} regex"
+    );
     //println!("facet count w.r.t. to provided weights in given filename                                      ->  {WEIGHTED_FACET_COUNT} filename facet");
     //println!("facet counts under each facet w.r.t. to provided regex and weights in given filename          ->  {WEIGHTED_FACET_COUNTS} filename regex");
-    println!("facet counts under each facet in targets_1=[regex] using projection on targets_2=[regex]      ->  {FACET_COUNTS_PROJECTING} targets_2 targets_1");
-    println!("significance of facets=[regex] for some literal=[a or ~a]                                     ->  {SIGNIFICANCE} literal facets");
-    println!("significance of facets=[regex] for some literal=[a or ~a] using projection on targets=[regex] ->  {SIGNIFICANCE_PROJECTING} literal targets facets ");
-    println!("answer set count                                                                              ->  {ANSWER_SET_COUNT}");
-    println!("answer set counts under each facet                                                            ->  {ANSWER_SET_COUNTS}");
-    println!("enumerate representative answer sets regarding targets=[regex] filtered from current facets   ->  {SOE} targets");
-    println!("display program                                                                               ->  {SHOW_PROGRAM}");
-    println!("display atoms                                                                                 ->  {SHOW_ATOMS}");
-    println!("display regex-matched atoms                                                                   ->  {FILTER_ATOMS} regex");
-    println!("atom check                                                                                    ->  {IS_ATOM}");
-    println!("display navigation mode                                                                       ->  {DISPLAY_MODE}");
-    println!("quit                                                                                          ->  {QUIT}");
+    println!(
+        "facet counts under each facet in targets_1=[regex] using projection on targets_2=[regex]      ->  {FACET_COUNTS_PROJECTING} targets_2 targets_1"
+    );
+    println!(
+        "significance of facets=[regex] for some literal=[a or ~a]                                     ->  {SIGNIFICANCE} literal facets"
+    );
+    println!(
+        "significance of facets=[regex] for some literal=[a or ~a] using projection on targets=[regex] ->  {SIGNIFICANCE_PROJECTING} literal targets facets "
+    );
+    println!(
+        "answer set count                                                                              ->  {ANSWER_SET_COUNT}"
+    );
+    println!(
+        "answer set counts under each facet                                                            ->  {ANSWER_SET_COUNTS}"
+    );
+    println!(
+        "enumerate representative answer sets regarding targets=[regex] filtered from current facets   ->  {SOE} targets"
+    );
+    println!(
+        "display program                                                                               ->  {SHOW_PROGRAM}"
+    );
+    println!(
+        "display atoms                                                                                 ->  {SHOW_ATOMS}"
+    );
+    println!(
+        "display regex-matched atoms                                                                   ->  {FILTER_ATOMS} regex"
+    );
+    println!(
+        "atom check                                                                                    ->  {IS_ATOM}"
+    );
+    println!(
+        "display navigation mode                                                                       ->  {DISPLAY_MODE}"
+    );
+    println!(
+        "quit                                                                                          ->  {QUIT}"
+    );
     //println!("see documentation for more details");
 }
