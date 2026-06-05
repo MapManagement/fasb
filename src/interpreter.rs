@@ -770,7 +770,7 @@ pub mod interpreter_bindings {
                 return_active = active;
                 facets = nav
                     .nav
-                    .facet_inducing_atoms(route.iter())
+                    .facet_inducing_atoms(return_active.iter())
                     .ok_or(PyRuntimeError::new_err("take_step failed"))?
                     .iter()
                     .map(|f| lex::repr(*f))
@@ -781,7 +781,7 @@ pub mod interpreter_bindings {
                 return_active = active;
                 facets = nav
                     .nav
-                    .facet_inducing_atoms(route.iter())
+                    .facet_inducing_atoms(return_active.iter())
                     .ok_or(PyRuntimeError::new_err("take_step failed"))?
                     .iter()
                     .map(|f| lex::repr(*f))
@@ -1142,8 +1142,10 @@ pub mod interpreter_bindings {
         args: Vec<String>,
         mut ctx: Vec<String>,
     ) -> PyResult<(Vec<String>, Vec<String>)> {
-        ctx.drain(1..)
-            .for_each(|r| unsafe { nav.nav.remove_rule(r).unwrap_unchecked() });
+        if ctx.len() > 1 {
+            ctx.drain(1..)
+                .for_each(|r| unsafe { nav.nav.remove_rule(r).unwrap_unchecked() });
+        }
 
         ctx.clear();
 
@@ -1405,13 +1407,13 @@ pub mod interpreter_bindings {
                 (ctx, facets) = context(nav, route.clone(), args, ctx)?;
             }
             Some(SIGNIFICANCE) => {
-                significance(nav, facets.clone(), route.clone(), args)?;
+                significance(nav, route.clone(), facets.clone(), args)?;
             }
             Some(SIGNIFICANCE_PROJECTING) => {
                 significance_projecting(nav, facets.clone(), atoms.clone(), route.clone(), args)?;
             }
             Some(ENUMERATE_PROJECTED_SOLUTIONS) => {
-                enumerate_projected_solutions(nav, args, route.clone(), facets.clone())?;
+                enumerate_projected_solutions(nav, args, facets.clone(), route.clone())?;
             }
             None => {
                 println!("noop [empty command]");
