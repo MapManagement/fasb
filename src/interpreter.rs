@@ -805,266 +805,72 @@ pub mod interpreter_bindings {
     ) -> PyResult<(Vec<String>, Vec<String>, Vec<String>, Vec<String>)> {
         let tmp: Vec<String> = args.into_iter().map(|s| s.replace('\\', "")).collect();
         let joined = tmp.join(" ");
-        let mut src = joined.trim().split(" | ");
-
-        let mut pred = match src.next() {
-            Some(expr) => expr.split(" "),
-            _ => {
-                println!("error: specify condition");
-
+        
+        let mut parts = joined.splitn(2, WHILE_LOOP_DO);
+        let condition_part = parts.next().unwrap_or("").trim();
+        let body_part = parts.next().unwrap_or("").trim();
+    
+        if condition_part.is_empty() || body_part.is_empty() {
+            println!("error: expected '{} <condition> {} <commands>'", LOOP, WHILE_LOOP_DO);
+            return Ok((atoms, facets, route, ctx));
+        }
+    
+        let cond_tokens: Vec<&str> = condition_part.split_whitespace().collect();
+        if cond_tokens.len() != 3 {
+            println!("error: condition must be of form <var> <op> <number>");
+            return Ok((atoms, facets, route, ctx));
+        }
+        let var = cond_tokens[0];
+        let op = cond_tokens[1];
+        let rhs = cond_tokens[2].parse::<usize>().ok();
+        let rhs = match rhs {
+            Some(n) => n,
+            None => {
+                println!("error: right-hand side must be a positive integer");
                 return Ok((atoms, facets, route, ctx));
             }
         };
-        let inst = match src.next() {
-            Some(expr) => expr.split(".").collect::<Vec<_>>(),
-            _ => {
-                println!("error: found no instructions");
-
-                return Ok((atoms, facets, route, ctx));
+    
+        let commands: Vec<&str> = body_part.split(WHILE_LOOP_CMD_SEP).collect();
+    
+        let condition_holds = |facets_len: usize, route_len: usize| -> bool {
+            let lhs = match var {
+                WHILE_LOOP_VAR_FACETS => facets_len,
+                WHILE_LOOP_VAR_ROUTE => route_len,
+                _ => {
+                    println!("error: unknown variable '{}'", var);
+                    return false;
+                }
+            };
+            match op {
+                WHILE_LOOP_OP_NEQ => lhs != rhs,
+                WHILE_LOOP_OP_GT  => lhs > rhs,
+                WHILE_LOOP_OP_GTE => lhs >= rhs,
+                WHILE_LOOP_OP_LT  => lhs < rhs,
+                WHILE_LOOP_OP_LTE => lhs <= rhs,
+                _ => {
+                    println!("error: unknown operator '{}'", op);
+                    false
+                }
             }
         };
-
-        match pred.next() {
-            Some("!=") => match pred.next() {
-                Some("#f") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && 2 * facets.len() != x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                Some("#r") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && route.len() != x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                _ => {
-                    println!("error: unknown lhs");
-                    return Ok((atoms, facets, route, ctx));
-                }
-            },
-            Some(">") => match pred.next() {
-                Some("#f") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && 2 * facets.len() > x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                Some("#r") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && route.len() > x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                _ => {
-                    println!("error: unknown lhs");
-                    return Ok((atoms, facets, route, ctx));
-                }
-            },
-            Some(">=") => match pred.next() {
-                Some("#f") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && 2 * facets.len() >= x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                Some("#r") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && route.len() >= x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                _ => {
-                    println!("error: unknown lhs");
-                    return Ok((atoms, facets, route, ctx));
-                }
-            },
-            Some("<") => match pred.next() {
-                Some("#f") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && 2 * facets.len() < x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                Some("#r") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && route.len() < x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                _ => {
-                    println!("error: unknown lhs");
-                    return Ok((atoms, facets, route, ctx));
-                }
-            },
-            Some("<=") => match pred.next() {
-                Some("#f") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && 2 * facets.len() <= x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                Some("#r") => match pred.next().and_then(|n| n.parse::<usize>().ok()) {
-                    Some(x) => {
-                        while !facets.is_empty() && route.len() <= x {
-                            for cmd in &inst {
-                                (atoms, facets, route, ctx) = command(
-                                    cmd.trim().to_owned(),
-                                    nav,
-                                    atoms.clone(),
-                                    facets.clone(),
-                                    route.clone(),
-                                    ctx.clone(),
-                                )?;
-                            }
-                        }
-                    }
-                    _ => {
-                        println!("error: unknown rhs");
-                        return Ok((atoms, facets, route, ctx));
-                    }
-                },
-                _ => {
-                    println!("error: unknown lhs");
-                    return Ok((atoms, facets, route, ctx));
-                }
-            },
-            _ => {
-                println!("error: provide instructions");
-                return Ok((atoms, facets, route, ctx));
+    
+        while !facets.is_empty() && condition_holds(2 * facets.len(), route.len()) {
+            for cmd in &commands {
+                let cmd_str = cmd.trim().to_string();
+                (atoms, facets, route, ctx) = command(
+                    cmd_str,
+                    nav,
+                    atoms.clone(),
+                    facets.clone(),
+                    route.clone(),
+                    ctx.clone(),
+                )?;
             }
-        };
-
+        }
+    
         Ok((atoms, facets, route, ctx))
     }
-
     #[pyfunction]
     pub fn is_atom(nav: &mut PyNavigator, args: Vec<String>) -> PyResult<()> {
         match args.first().and_then(|a| nav.nav.is_known(a.to_owned())) {
@@ -1290,7 +1096,7 @@ pub mod interpreter_bindings {
     pub fn command(
         expr: String,
         nav: &mut PyNavigator,
-        atoms: Vec<String>,
+        mut atoms: Vec<String>,
         mut facets: Vec<String>,
         mut route: Vec<String>,
         mut ctx: Vec<String>,
@@ -1298,78 +1104,75 @@ pub mod interpreter_bindings {
         let mut parts = expr.as_str().split_whitespace();
         let command = parts.next();
         let args: Vec<String> = parts.map(String::from).collect();
-
+    
         match command {
-            Some(ACTIVATE_FACETS) => {
+            Some(ACTIVATE_FACETS) | Some(ACTIVATE_FACETS_ALIAS) => {
                 (facets, route) = activate_facets(nav, route, args)?;
             }
-            Some(ACTIVATE_FACETS_LT) => {
+            Some(ACTIVATE_FACETS_LT) | Some(ACTIVATE_FACETS_LT_ALIAS) => {
                 (facets, route) = activate_facets_lt(nav, facets, route, args)?;
             }
-            Some(ACTIVATE_FACETS_LAZY) => {
+            Some(ACTIVATE_FACETS_LAZY) | Some(ACTIVATE_FACETS_LAZY_ALIAS) => {
                 route = activate_facets_lazy(route, args)?;
             }
-            Some(COMPUTE_FACETS) => {
+            Some(COMPUTE_FACETS) | Some(COMPUTE_FACETS_ALIAS) => {
                 facets = compute_facets(nav, route.clone(), args)?;
             }
             Some(ENTAILMENT) => {
                 entailment(nav, atoms.clone(), route.clone(), args)?;
             }
-            Some(COMPUTE_FACETS_SU) => {
+            Some(COMPUTE_FACETS_SU) | Some(COMPUTE_FACETS_SU_ALIAS) => {
                 facets = compute_facets_su(nav, atoms.clone(), route.clone(), args)?;
             }
             Some(COMPUTE_FACETS_SOE) => {
                 facets = compute_facets_soe_projecting(nav, atoms.clone(), route.clone(), args)?;
             }
-            Some(IS_FACET_R) => {
+            Some(IS_FACET_R) | Some(IS_FACET_R_ALIAS) => {
                 facets = get_is_facet_r(nav, atoms.clone(), args)?;
             }
-            Some(IS_FACET) => {
+            Some(IS_FACET) | Some(IS_FACET_ALIAS) => {
                 get_is_facet(nav, args)?;
             }
-            Some(WEIGHTED_FACET_COUNT) => {
+            Some(WEIGHTED_FACET_COUNT) | Some(WEIGHTED_FACET_COUNT_ALIAS) => {
                 get_weighted_facet_count(nav, route.clone(), args)?;
             }
-            Some(WEIGHTED_FACET_COUNTS) => {
+            Some(WEIGHTED_FACET_COUNTS) | Some(WEIGHTED_FACET_COUNTS_ALIAS) => {
                 route = weighted_facet_counts(nav, facets.clone(), route, args)?;
             }
-            Some(ENUMERATE_SOLUTIONS) => {
+            Some(ENUMERATE_SOLUTIONS) | Some(ENUMERATE_SOLUTIONS_ALIAS) => {
                 enumerate_solutions(nav, route.clone(), args)?;
             }
-            Some(SHOW_FACETS) => {
+            Some(SHOW_FACETS) | Some(SHOW_FACETS_ALIAS) => {
                 show_facets(facets.clone(), args)?;
             }
-            Some(FACET_COUNT) => {
+            Some(FACET_COUNT) | Some(FACET_COUNT_ALIAS) => {
                 facet_count(facets.clone())?;
             }
-            Some(FACET_COUNTS) => {
+            Some(FACET_COUNTS) | Some(FACET_COUNTS_ALIAS) => {
                 route = facet_counts(nav, facets.clone(), route, args)?;
             }
-            Some(FACET_COUNTS_PROJECTING) => {
+            Some(FACET_COUNTS_PROJECTING) | Some(FACET_COUNTS_PROJECTING_ALIAS) => {
                 route = facet_counts_projecting(nav, atoms.clone(), facets.clone(), route, args)?;
             }
-            Some(ANSWER_SET_COUNT) => {
+            Some(ANSWER_SET_COUNT) | Some(ANSWER_SET_COUNT_ALIAS) => {
                 answer_set_count(nav, route.clone(), args)?;
             }
-            Some(ANSWER_SET_COUNTS) => {
+            Some(ANSWER_SET_COUNTS) | Some(ANSWER_SET_COUNTS_ALIAS) => {
                 route = answer_set_counts(nav, facets.clone(), route, args)?;
             }
-            Some(SHOW_ROUTE) => {
+            Some(SHOW_ROUTE) | Some(SHOW_ROUTE_ALIAS) => {
                 show_route(route.clone(), ctx.clone())?;
             }
-            Some(DEL_LAST) => {
+            Some(DEL_LAST) | Some(DEL_LAST_ALIAS) => {
                 facets = del_last(nav, route.clone())?;
             }
-            Some(CLEAR_ROUTE) => {
+            Some(CLEAR_ROUTE) | Some(CLEAR_ROUTE_ALIAS) => {
                 (route, facets) = clear_route(nav, route)?;
             }
-            // TODO: Display Mode not implemented
-            //Some(DISPLAY_MODE) => display_mode()?,
-            //Some(CHANGE_MODE) => change_mode(args)?,
-            Some(PROPOSE_STEP) => {
+            Some(PROPOSE_STEP) | Some(PROPOSE_STEP_ALIAS) => {
                 route = propose_step(nav, facets.clone(), route, args)?;
             }
-            Some(TAKE_STEP) => {
+            Some(TAKE_STEP) | Some(TAKE_STEP_ALIAS) => {
                 (facets, route) = take_step(nav, facets, route, args)?;
             }
             Some(QUIT) => {
@@ -1379,7 +1182,7 @@ pub mod interpreter_bindings {
                 crate::config::manual();
             }
             Some(LOOP) => {
-                execute_loop(
+                (atoms, facets, route, ctx) = execute_loop(
                     nav,
                     atoms.clone(),
                     facets.clone(),
@@ -1403,17 +1206,23 @@ pub mod interpreter_bindings {
             Some(SOE) => {
                 sieve_facets(nav, facets.clone(), args)?;
             }
-            Some(CONTEXT) => {
+            Some(CONTEXT) | Some(CONTEXT_ALIAS) => {
                 (ctx, facets) = context(nav, route.clone(), args, ctx)?;
             }
-            Some(SIGNIFICANCE) => {
+            Some(SIGNIFICANCE) | Some(SIGNIFICANCE_ALIAS) => {
                 significance(nav, route.clone(), facets.clone(), args)?;
             }
-            Some(SIGNIFICANCE_PROJECTING) => {
+            Some(SIGNIFICANCE_PROJECTING) | Some(SIGNIFICANCE_PROJECTING_ALIAS) => {
                 significance_projecting(nav, facets.clone(), atoms.clone(), route.clone(), args)?;
             }
-            Some(ENUMERATE_PROJECTED_SOLUTIONS) => {
+            Some(ENUMERATE_PROJECTED_SOLUTIONS) | Some(ENUMERATE_PROJECTED_SOLUTIONS_ALIAS) => {
                 enumerate_projected_solutions(nav, args, facets.clone(), route.clone())?;
+            }
+            Some(CHANGE_MODE) | Some(CHANGE_MODE_ALIAS) => {
+                println!("change mode not fully implemented yet");
+            }
+            Some(DISPLAY_MODE) => {
+                println!("display mode not fully implemented yet");
             }
             None => {
                 println!("noop [empty command]");
