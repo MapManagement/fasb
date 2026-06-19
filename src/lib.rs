@@ -9,7 +9,7 @@ mod wrappers;
 
 #[pyo3::pymodule]
 pub mod fasb {
-    #[cfg(not(feature = "interpreter"))]
+    use crate::completer::FasbHelper;
     use crate::config;
     use crate::config::PROMPT;
     use crate::interpreter::interpreter_bindings::command;
@@ -20,11 +20,8 @@ pub mod fasb {
     use pyo3::prelude::*;
     use pyo3::pyfunction;
     use regex::Regex;
-    #[cfg(not(feature = "interpreter"))]
-    use crate::completer::FasbHelper;
-    #[cfg(not(feature = "interpreter"))]
-    use rustyline::{Editor, history::DefaultHistory, CompletionType, Config};
     use rustyline::error::ReadlineError;
+    use rustyline::{CompletionType, Config, Editor, history::DefaultHistory};
     use savan::lex;
     use savan::nav::facets::Facets;
     use std::fs::read_to_string;
