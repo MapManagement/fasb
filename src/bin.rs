@@ -32,9 +32,7 @@ pub fn main() {
 }
 
 #[cfg(feature = "interpreter")]
-pub fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use std::{fs::read_to_string, path::Path};
-
+pub fn main() {
     let mut input = std::env::args().skip(1);
     let arg = match input.next() {
         Some(s) => s,
@@ -45,10 +43,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let mut args = input.collect::<Vec<_>>();
-    let lp = read_to_string(Path::new(&arg))?;
+    let lp = &arg;
 
     // NOTE: script has to be last argument
-    let script = read_to_string(Path::new(args.last().unwrap()))?;
+    let script = args.last().cloned();
     args.pop();
 
     let mut facets_at_startup = true;
@@ -64,6 +62,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.remove(i);
     }
 
-    let _ = start_fasb_interpreter(args, lp, script, facets_at_startup, learned_that_at_startup);
-    Ok(())
+    let _ = start_fasb_interpreter(
+        args,
+        lp.to_string(),
+        script.unwrap().to_string(),
+        facets_at_startup,
+        learned_that_at_startup,
+    );
 }

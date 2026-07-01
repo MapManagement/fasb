@@ -150,11 +150,17 @@ pub mod fasb {
             env!("CARGO_PKG_VERSION"),
         );
 
-        let _clp = is_facet::copy_program(logic_programm_path.clone());
-        let _py_nav = PyNavigator::new(logic_programm_path.clone(), args.clone())?;
+        let lp = read_to_string(Path::new(&logic_programm_path))
+            .map_err(|_| PyRuntimeError::new_err("read_to_string for logic program failed"))?;
+
+        let script = read_to_string(Path::new(&script_path))
+            .map_err(|_| PyRuntimeError::new_err("read_to_string for script failed"))?;
+
+        let _clp = is_facet::copy_program(lp.clone());
+        let _py_nav = PyNavigator::new(lp.clone(), args.clone())?;
 
         let re = Regex::new(r#config::FILTER_KEYWORD).unwrap();
-        let filter_re = match logic_programm_path.lines().last() {
+        let filter_re = match lp.lines().last() {
             Some(x) => {
                 if re.is_match(x) {
                     let s = &x.replace(config::FILTER_KEYWORD, "");
@@ -167,7 +173,7 @@ pub mod fasb {
             _ => todo!(),
         };
 
-        let mut py_nav = PyNavigator::new(logic_programm_path, args)?;
+        let mut py_nav = PyNavigator::new(lp, args)?;
         // Not needed anymore
         let mut _mode = Mode::GoalOriented(None::<usize>);
 
@@ -196,7 +202,7 @@ pub mod fasb {
             vec![]
         };
 
-        for line in script_path.lines() {
+        for line in script.lines() {
             println!("{PROMPT}{line}");
             (atoms, facets, route, ctx) =
                 command(line.to_owned(), &mut py_nav, atoms, facets, route, ctx)?
