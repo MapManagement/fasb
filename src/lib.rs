@@ -137,49 +137,24 @@ pub mod fasb {
     }
 
     #[pyfunction]
-    pub fn start_fasb_interpreter() -> PyResult<()> {
-        let mut input = std::env::args().skip(1);
-        let arg = match input.next() {
-            Some(s) => s,
-            _ => {
-                println!("error: expected input logic program");
-                std::process::exit(-1)
-            }
-        };
-
-        let mut args = input.collect::<Vec<_>>();
-        let lp = read_to_string(Path::new(&arg))
-            .map_err(|_| PyRuntimeError::new_err("read_to_string for program failed"))?;
-
+    pub fn start_fasb_interpreter(
+        args: Vec<String>,
+        logic_programm_path: String,
+        script_path: String,
+        supress_facet_computation: bool,
+        print_atoms: bool,
+    ) -> PyResult<()> {
         println!(
             "{} v{} (interpreter)",
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
         );
 
-        // NOTE: script has to be last argument
-        let script = read_to_string(Path::new(args.last().unwrap()))
-            .map_err(|_| PyRuntimeError::new_err("read_to_string for script failed"))?;
-        args.pop();
-
-        let mut facets_at_startup = true;
-        let mut learned_that_at_startup = false;
-        if args.contains(&"--f".to_owned()) {
-            facets_at_startup = false;
-            let i = unsafe { args.iter().position(|x| *x == "--f").unwrap_unchecked() };
-            args.remove(i);
-        }
-        if args.contains(&"--l".to_owned()) {
-            learned_that_at_startup = true;
-            let i = unsafe { args.iter().position(|x| *x == "--l").unwrap_unchecked() };
-            args.remove(i);
-        }
-
-        let _clp = is_facet::copy_program(lp.clone());
-        let _py_nav = PyNavigator::new(lp.clone(), args.clone())?;
+        let _clp = is_facet::copy_program(logic_programm_path.clone());
+        let _py_nav = PyNavigator::new(logic_programm_path.clone(), args.clone())?;
 
         let re = Regex::new(r#config::FILTER_KEYWORD).unwrap();
-        let filter_re = match lp.lines().last() {
+        let filter_re = match logic_programm_path.lines().last() {
             Some(x) => {
                 if re.is_match(x) {
                     let s = &x.replace(config::FILTER_KEYWORD, "");
@@ -192,7 +167,7 @@ pub mod fasb {
             _ => todo!(),
         };
 
-        let mut py_nav = PyNavigator::new(lp, args)?;
+        let mut py_nav = PyNavigator::new(logic_programm_path, args)?;
         // Not needed anymore
         let mut _mode = Mode::GoalOriented(None::<usize>);
 
@@ -203,8 +178,8 @@ pub mod fasb {
             .collect::<Vec<String>>();
         let mut route = Vec::new();
         let mut ctx = Vec::new();
-        let mut facets = if facets_at_startup {
-            match learned_that_at_startup {
+        let mut facets = if supress_facet_computation {
+            match print_atoms {
                 false => py_nav
                     .nav
                     .facet_inducing_atoms(route.iter())
@@ -221,7 +196,7 @@ pub mod fasb {
             vec![]
         };
 
-        for line in script.lines() {
+        for line in script_path.lines() {
             println!("{PROMPT}{line}");
             (atoms, facets, route, ctx) =
                 command(line.to_owned(), &mut py_nav, atoms, facets, route, ctx)?
