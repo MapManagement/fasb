@@ -1,5 +1,6 @@
 #[pyo3::pymodule]
 pub mod interpreter_bindings {
+    use crate::cache::{cached_facets, cached_facets_projecting};
     use crate::config::*;
     use crate::is_facet;
     use crate::modes::Mode;
@@ -20,6 +21,7 @@ pub mod interpreter_bindings {
         weights::{Weight, count, count_projecting},
     };
     use std::fmt::Write;
+    use std::num::NonZeroUsize;
     use std::thread;
     use std::time::Duration;
     use std::time::Instant;
@@ -31,13 +33,7 @@ pub mod interpreter_bindings {
         args: Vec<String>,
     ) -> PyResult<(Vec<String>, Vec<String>)> {
         route.extend(args);
-        let facets: Vec<String> = nav
-            .nav
-            .facet_inducing_atoms(route.iter())
-            .ok_or(PyRuntimeError::new_err("activate_facets failed"))?
-            .iter()
-            .map(|f| lex::repr(*f))
-            .collect();
+        let facets = cached_facets(nav, &route)?;
 
         Ok((facets, route))
     }
@@ -75,21 +71,14 @@ pub mod interpreter_bindings {
         args: Vec<String>,
     ) -> PyResult<Vec<String>> {
         let start = Instant::now();
+        let all_facets = cached_facets(nav, &route)?;
         let facets = if let Some(re) = args.first().and_then(|s| Regex::new(r#s).ok()) {
-            nav.nav
-                .facet_inducing_atoms(route.iter())
-                .ok_or(PyRuntimeError::new_err("compute_facets failed"))?
-                .iter()
-                .map(|f| lex::repr(*f))
+            all_facets
+                .into_iter()
                 .filter(|a| re.is_match(a))
                 .collect::<Vec<_>>()
         } else {
-            nav.nav
-                .facet_inducing_atoms(route.iter())
-                .ok_or(PyRuntimeError::new_err("compute_facets failed"))?
-                .iter()
-                .map(|f| lex::repr(*f))
-                .collect()
+            all_facets
         };
         println!("time elapsed: {:?}", start.elapsed());
         Ok(facets)
@@ -236,18 +225,14 @@ pub mod interpreter_bindings {
         nav.nav
             .add_rule(s.clone())
             .map_err(|_| PyRuntimeError::new_err("compute_facets_su failed"))?;
+        nav.invalidate_cache_internal();
 
-        let facets = nav
-            .nav
-            .facet_inducing_atoms_projecting(route.iter())
-            .ok_or(PyRuntimeError::new_err("compute_facets_su failed"))?
-            .iter()
-            .map(|f| lex::repr(*f))
-            .collect();
+        let facets = cached_facets_projecting(nav, &route)?;
 
         nav.nav
             .remove_rule(s)
             .map_err(|_| PyRuntimeError::new_err("compute_facets_su failed"))?;
+        nav.invalidate_cache_internal();
 
         Ok(facets)
     }
@@ -276,8 +261,10 @@ pub mod interpreter_bindings {
             .collect::<Vec<_>>()
             .join("\n");
         nav.nav.add_rule(shows.clone()).unwrap();
+        nav.invalidate_cache_internal();
         let cc = nav.nav.cautious_consequences_projecting(route.iter());
         nav.nav.remove_rule(shows).unwrap();
+        nav.invalidate_cache_internal();
 
         let ys = cc
             .map(|cc| {
@@ -296,6 +283,7 @@ pub mod interpreter_bindings {
             .collect::<Vec<_>>()
             .join("\n");
         nav.nav.add_rule(shows.clone()).unwrap();
+        nav.invalidate_cache_internal();
         nav.nav
             .add_arg("--project=show")
             .map_err(|_| PyRuntimeError::new_err("compute_facets_soe_projecting failed"))?;
@@ -303,6 +291,7 @@ pub mod interpreter_bindings {
         let facets = nav.nav.sieve_quiet(&ys).unwrap();
 
         nav.nav.remove_rule(shows).unwrap();
+        nav.invalidate_cache_internal();
         Ok(facets)
     }
 
@@ -334,6 +323,7 @@ pub mod interpreter_bindings {
         nav.nav
             .add_rule(clp.clone())
             .map_err(|_| PyRuntimeError::new_err("is_facet_r failed"))?;
+        nav.invalidate_cache_internal();
 
         for x in xs {
             if is_facet::is_facet_r(&mut nav.nav, x.to_string()) {
@@ -351,6 +341,7 @@ pub mod interpreter_bindings {
         nav.nav
             .remove_rule(clp)
             .map_err(|_| PyRuntimeError::new_err("is_facet_r failed"))?;
+        nav.invalidate_cache_internal();
 
         Ok(facets)
     }
@@ -553,6 +544,7 @@ pub mod interpreter_bindings {
         nav.nav
             .add_rule(s.clone())
             .map_err(|_| PyRuntimeError::new_err("enumerate_solutions failed"))?;
+        nav.invalidate_cache_internal();
 
         if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
             for f in facets.iter().filter(|f| re.is_match(f)) {
@@ -585,6 +577,7 @@ pub mod interpreter_bindings {
         nav.nav
             .remove_rule(s)
             .map_err(|_| PyRuntimeError::new_err("enumerate_solutions failed"))?;
+        nav.invalidate_cache_internal();
 
         Ok(route)
     }
@@ -667,13 +660,7 @@ pub mod interpreter_bindings {
     pub fn del_last(nav: &mut PyNavigator, mut route: Vec<String>) -> PyResult<Vec<String>> {
         route.pop();
 
-        let facets: Vec<String> = nav
-            .nav
-            .facet_inducing_atoms(route.iter())
-            .ok_or(PyRuntimeError::new_err("del_last failed"))?
-            .iter()
-            .map(|f| lex::repr(*f))
-            .collect();
+        let facets = cached_facets(nav, &route)?;
 
         Ok(facets)
     }
@@ -685,13 +672,7 @@ pub mod interpreter_bindings {
     ) -> PyResult<(Vec<String>, Vec<String>)> {
         route.clear();
 
-        let facets: Vec<String> = nav
-            .nav
-            .facet_inducing_atoms(route.iter())
-            .ok_or(PyRuntimeError::new_err("clear_route failed"))?
-            .iter()
-            .map(|f| lex::repr(*f))
-            .collect();
+        let facets = cached_facets(nav, &route)?;
 
         Ok((route, facets))
     }
@@ -768,24 +749,12 @@ pub mod interpreter_bindings {
                 println!("{:.4} {:?} {f}", 1.0 - (c as f32 / ovr_count), c);
                 // self.update(Some(c));
                 return_active = active;
-                facets = nav
-                    .nav
-                    .facet_inducing_atoms(return_active.iter())
-                    .ok_or(PyRuntimeError::new_err("take_step failed"))?
-                    .iter()
-                    .map(|f| lex::repr(*f))
-                    .collect();
+                facets = cached_facets(nav, &return_active)?;
             }
             Ok((active, Some((f, None)))) => {
                 println!("_ _ {f}");
                 return_active = active;
-                facets = nav
-                    .nav
-                    .facet_inducing_atoms(return_active.iter())
-                    .ok_or(PyRuntimeError::new_err("take_step failed"))?
-                    .iter()
-                    .map(|f| lex::repr(*f))
-                    .collect();
+                facets = cached_facets(nav, &return_active)?;
             }
             _ => println!("noop"),
         }
@@ -805,16 +774,19 @@ pub mod interpreter_bindings {
     ) -> PyResult<(Vec<String>, Vec<String>, Vec<String>, Vec<String>)> {
         let tmp: Vec<String> = args.into_iter().map(|s| s.replace('\\', "")).collect();
         let joined = tmp.join(" ");
-        
+
         let mut parts = joined.splitn(2, WHILE_LOOP_DO);
         let condition_part = parts.next().unwrap_or("").trim();
         let body_part = parts.next().unwrap_or("").trim();
-    
+
         if condition_part.is_empty() || body_part.is_empty() {
-            println!("error: expected '{} <condition> {} <commands>'", LOOP, WHILE_LOOP_DO);
+            println!(
+                "error: expected '{} <condition> {} <commands>'",
+                LOOP, WHILE_LOOP_DO
+            );
             return Ok((atoms, facets, route, ctx));
         }
-    
+
         let cond_tokens: Vec<&str> = condition_part.split_whitespace().collect();
         if cond_tokens.len() != 3 {
             println!("error: condition must be of form <var> <op> <number>");
@@ -830,9 +802,9 @@ pub mod interpreter_bindings {
                 return Ok((atoms, facets, route, ctx));
             }
         };
-    
+
         let commands: Vec<&str> = body_part.split(WHILE_LOOP_CMD_SEP).collect();
-    
+
         let condition_holds = |facets_len: usize, route_len: usize| -> bool {
             let lhs = match var {
                 WHILE_LOOP_VAR_FACETS => facets_len,
@@ -844,9 +816,9 @@ pub mod interpreter_bindings {
             };
             match op {
                 WHILE_LOOP_OP_NEQ => lhs != rhs,
-                WHILE_LOOP_OP_GT  => lhs > rhs,
+                WHILE_LOOP_OP_GT => lhs > rhs,
                 WHILE_LOOP_OP_GTE => lhs >= rhs,
-                WHILE_LOOP_OP_LT  => lhs < rhs,
+                WHILE_LOOP_OP_LT => lhs < rhs,
                 WHILE_LOOP_OP_LTE => lhs <= rhs,
                 _ => {
                     println!("error: unknown operator '{}'", op);
@@ -854,7 +826,7 @@ pub mod interpreter_bindings {
                 }
             }
         };
-    
+
         while !facets.is_empty() && condition_holds(2 * facets.len(), route.len()) {
             for cmd in &commands {
                 let cmd_str = cmd.trim().to_string();
@@ -868,7 +840,7 @@ pub mod interpreter_bindings {
                 )?;
             }
         }
-    
+
         Ok((atoms, facets, route, ctx))
     }
     #[pyfunction]
@@ -949,8 +921,10 @@ pub mod interpreter_bindings {
         mut ctx: Vec<String>,
     ) -> PyResult<(Vec<String>, Vec<String>)> {
         if ctx.len() > 1 {
-            ctx.drain(1..)
-                .for_each(|r| unsafe { nav.nav.remove_rule(r).unwrap_unchecked() });
+            for r in ctx.drain(1..) {
+                unsafe { nav.nav.remove_rule(r).unwrap_unchecked() };
+                nav.invalidate_cache_internal();
+            }
         }
 
         ctx.clear();
@@ -976,16 +950,11 @@ pub mod interpreter_bindings {
                 nav.nav
                     .add_rule(ic)
                     .map_err(|_| PyRuntimeError::new_err("context failed"))?;
+                nav.invalidate_cache_internal();
             }
         }
 
-        let facets: Vec<String> = nav
-            .nav
-            .facet_inducing_atoms(route.iter())
-            .ok_or(PyRuntimeError::new_err("context failed"))?
-            .iter()
-            .map(|f| lex::repr(*f))
-            .collect();
+        let facets = cached_facets(nav, &route)?;
 
         Ok((ctx, facets))
     }
@@ -1048,6 +1017,7 @@ pub mod interpreter_bindings {
         nav.nav
             .add_rule(s.clone())
             .map_err(|_| PyRuntimeError::new_err("significance_projecting failed"))?;
+        nav.invalidate_cache_internal();
 
         if let Some(re) = args.get(2).and_then(|s| Regex::new(r#s).ok()) {
             nav.nav
@@ -1057,6 +1027,7 @@ pub mod interpreter_bindings {
         nav.nav
             .remove_rule(s.clone())
             .map_err(|_| PyRuntimeError::new_err("significance_projecting failed"))?;
+        nav.invalidate_cache_internal();
 
         Ok(())
     }
@@ -1092,6 +1063,57 @@ pub mod interpreter_bindings {
 
         Ok(())
     }
+
+    #[pyfunction]
+    pub fn cache_control(nav: &mut PyNavigator, args: Vec<String>) -> PyResult<()> {
+        match args.first().map(String::as_str) {
+            Some(CACHE_ON) => {
+                nav.set_cache_enabled_internal(true);
+                println!("cache enabled");
+            }
+            Some(CACHE_OFF) => {
+                nav.set_cache_enabled_internal(false);
+                println!("cache disabled");
+            }
+            Some(CACHE_CLEAR) => {
+                nav.clear_cache_internal();
+                println!("cache cleared");
+            }
+            Some(CACHE_SIZE) => match args.get(1).and_then(|value| value.parse::<usize>().ok()) {
+                Some(capacity) => {
+                    let capacity = NonZeroUsize::new(capacity).ok_or_else(|| {
+                        PyRuntimeError::new_err("cache size must be greater than zero")
+                    })?;
+                    nav.set_cache_capacity_internal(capacity);
+                    println!("cache size set to {}", nav.facet_cache.capacity());
+                }
+                None => {
+                    println!("cache size: {}", nav.facet_cache.capacity());
+                }
+            },
+            Some(CACHE_STATUS) | None => {
+                let status = if nav.cache_enabled {
+                    "enabled"
+                } else {
+                    "disabled"
+                };
+                println!(
+                    "cache {status}; entries: {}; capacity: {}; program_version: {}",
+                    nav.facet_cache.len(),
+                    nav.facet_cache.capacity(),
+                    nav.program_version
+                );
+            }
+            Some(_) => {
+                println!(
+                    "usage: {CACHE} {{{CACHE_ON},{CACHE_OFF},{CACHE_CLEAR},{CACHE_SIZE},{CACHE_STATUS}}}"
+                );
+            }
+        }
+
+        Ok(())
+    }
+
     #[pyfunction]
     pub fn command(
         expr: String,
@@ -1104,7 +1126,7 @@ pub mod interpreter_bindings {
         let mut parts = expr.as_str().split_whitespace();
         let command = parts.next();
         let args: Vec<String> = parts.map(String::from).collect();
-    
+
         match command {
             Some(ACTIVATE_FACETS) | Some(ACTIVATE_FACETS_ALIAS) => {
                 (facets, route) = activate_facets(nav, route, args)?;
@@ -1208,6 +1230,9 @@ pub mod interpreter_bindings {
             }
             Some(CONTEXT) | Some(CONTEXT_ALIAS) => {
                 (ctx, facets) = context(nav, route.clone(), args, ctx)?;
+            }
+            Some(CACHE) | Some(CACHE_ALIAS) => {
+                cache_control(nav, args)?;
             }
             Some(SIGNIFICANCE) | Some(SIGNIFICANCE_ALIAS) => {
                 significance(nav, route.clone(), facets.clone(), args)?;

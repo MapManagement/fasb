@@ -27,6 +27,7 @@ pub const FILTER_ATOMS: &'static str = ":filter_atoms";
 pub const IS_ATOM: &'static str = ":isatom";
 pub const SOE: &'static str = ":soe";
 pub const CONTEXT: &'static str = ":ctx";
+pub const CACHE: &'static str = "cache";
 pub const SIGNIFICANCE: &'static str = "sig";
 pub const SIGNIFICANCE_PROJECTING: &'static str = "sig*";
 pub const COMPUTE_FACETS_SOE: &'static str = "!?soe";
@@ -36,7 +37,7 @@ pub const IS_FACET_R: &'static str = "isfacet!";
 pub const ENTAILMENT: &'static str = "|=";
 pub const QUIT: &'static str = ":q";
 pub const LOOP: &'static str = "while";
-pub const WHILE_LOOP_DO: &'static str = "do";       
+pub const WHILE_LOOP_DO: &'static str = "do";
 pub const WHILE_LOOP_CMD_SEP: &'static str = ";";
 pub const WHILE_LOOP_VAR_FACETS: &'static str = "#facets";
 pub const WHILE_LOOP_VAR_ROUTE: &'static str = "#route";
@@ -69,12 +70,18 @@ pub const CHANGE_MODE_ALIAS: &'static str = "'";
 pub const PROPOSE_STEP_ALIAS: &'static str = "$";
 pub const TAKE_STEP_ALIAS: &'static str = "$$";
 pub const CONTEXT_ALIAS: &'static str = ">";
+pub const CACHE_ALIAS: &'static str = ":cache";
 pub const SIGNIFICANCE_ALIAS: &'static str = "%";
 pub const SIGNIFICANCE_PROJECTING_ALIAS: &'static str = "!%";
 pub const IS_FACET_ALIAS: &'static str = ":?";
 pub const IS_FACET_R_ALIAS: &'static str = ":?r";
 
 pub const FILTER_KEYWORD: &'static str = "%filter ";
+pub const CACHE_ON: &'static str = "on";
+pub const CACHE_OFF: &'static str = "off";
+pub const CACHE_CLEAR: &'static str = "clear";
+pub const CACHE_SIZE: &'static str = "size";
+pub const CACHE_STATUS: &'static str = "status";
 
 pub(crate) fn manual() {
     println!(
@@ -155,6 +162,9 @@ pub(crate) fn manual() {
     );
     println!(
         "display navigation mode                                                                       ->  {DISPLAY_MODE}"
+    );
+    println!(
+        "control facet cache                                                                            ->  {CACHE} {{{CACHE_ON},{CACHE_OFF},{CACHE_CLEAR},{CACHE_SIZE},{CACHE_STATUS}}}"
     );
     println!(
         "quit                                                                                          ->  {QUIT}"

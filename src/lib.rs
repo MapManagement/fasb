@@ -1,3 +1,4 @@
+mod cache;
 mod completer;
 mod config;
 mod interpreter;
@@ -9,6 +10,7 @@ mod wrappers;
 
 #[pyo3::pymodule]
 pub mod fasb {
+    use crate::cache::cached_facets;
     use crate::completer::FasbHelper;
     use crate::config;
     use crate::config::PROMPT;
@@ -22,7 +24,6 @@ pub mod fasb {
     use regex::Regex;
     use rustyline::error::ReadlineError;
     use rustyline::{CompletionType, Config, Editor, history::DefaultHistory};
-    use savan::lex;
     use savan::nav::facets::Facets;
     use std::fs::read_to_string;
     use std::path::Path;
@@ -79,13 +80,7 @@ pub mod fasb {
 
         let mut facets = if facets_at_startup {
             match learned_that_at_startup {
-                false => py_nav
-                    .nav
-                    .facet_inducing_atoms(route.iter())
-                    .ok_or(PyRuntimeError::new_err("nav.facet_inducing_atoms failed"))?
-                    .into_iter()
-                    .map(lex::repr)
-                    .collect::<Vec<_>>(),
+                false => cached_facets(&mut py_nav, &route)?,
                 _ => py_nav
                     .nav
                     .learned_that(&atoms, &route, None)
@@ -186,13 +181,7 @@ pub mod fasb {
         let mut ctx = Vec::new();
         let mut facets = if supress_facet_computation {
             match print_atoms {
-                false => py_nav
-                    .nav
-                    .facet_inducing_atoms(route.iter())
-                    .ok_or(PyRuntimeError::new_err("nav.facet_inducing_atoms failed"))?
-                    .iter()
-                    .map(|f| lex::repr(*f))
-                    .collect::<Vec<_>>(),
+                false => cached_facets(&mut py_nav, &route)?,
                 _ => py_nav
                     .nav
                     .learned_that(&atoms, &route, None)
