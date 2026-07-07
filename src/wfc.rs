@@ -1,4 +1,5 @@
 use savan::nav::{Navigator, facets::Facets};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub struct WeightedFacet {
@@ -9,14 +10,16 @@ pub struct WeightedFacet {
 
 pub fn weighted_facet_count(
     nav: &mut Navigator,
-    route: Vec<String>,
-    weighted_fs: Vec<WeightedFacet>,
+    route: &[String],
+    weighted_fs: &[WeightedFacet],
 ) -> Option<f32> {
     let mut score = 0.0;
 
+    // Collect consequences into hash sets so the membership tests below are O(1)
+    // instead of O(|bc|)/O(|cc|) linear scans (the `for x in cc` loop was O(|cc|·|bc|)).
     let bc = nav
-        .brave_consequences(route.clone().iter())
-        .map(|xs| xs.iter().map(|s| s.to_string()).collect::<Vec<_>>())?;
+        .brave_consequences(route.iter())
+        .map(|xs| xs.iter().map(|s| s.to_string()).collect::<HashSet<_>>())?;
 
     if !bc.is_empty() {
         for x in weighted_fs.iter().filter(|w| !w.inclusive) {
@@ -31,7 +34,7 @@ pub fn weighted_facet_count(
 
     let cc = nav
         .cautious_consequences(route.iter())
-        .map(|xs| xs.iter().map(|s| s.to_string()).collect::<Vec<_>>())?;
+        .map(|xs| xs.iter().map(|s| s.to_string()).collect::<HashSet<_>>())?;
 
     for x in weighted_fs.iter().filter(|w| w.inclusive) {
         if cc.contains(&x.facet) {
@@ -39,8 +42,8 @@ pub fn weighted_facet_count(
         }
     }
 
-    for x in cc {
-        if !bc.contains(&x) {
+    for x in &cc {
+        if !bc.contains(x) {
             score += 1.0
         }
     }

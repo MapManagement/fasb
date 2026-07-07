@@ -19,9 +19,8 @@ pub mod interpreter_bindings {
         soe::Collect,
         weights::{Weight, count, count_projecting},
     };
+    use std::collections::HashSet;
     use std::fmt::Write;
-    use std::thread;
-    use std::time::Duration;
     use std::time::Instant;
 
     #[pyfunction]
@@ -111,7 +110,7 @@ pub mod interpreter_bindings {
                 if let Some(xs) = nav
                     .nav
                     .cautious_consequences(route.iter())
-                    .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<Vec<_>>())
+                    .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<HashSet<_>>())
                 {
                     if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
                         for f in atoms.iter() {
@@ -133,7 +132,7 @@ pub mod interpreter_bindings {
                 if let Some(xs) = nav
                     .nav
                     .brave_consequences(route.iter())
-                    .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<Vec<_>>())
+                    .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<HashSet<_>>())
                 {
                     if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
                         for f in atoms.iter() {
@@ -156,7 +155,16 @@ pub mod interpreter_bindings {
                     if bcs.is_empty() {
                         println!("no answer set");
                     } else {
-                        let bcs_str = bcs.iter().map(|f| lex::repr(*f)).collect::<Vec<_>>();
+                        let bcs_str = bcs.iter().map(|f| lex::repr(*f)).collect::<HashSet<_>>();
+                        // A single cautious-consequences solve tells us which brave
+                        // atoms hold in *every* answer set, replacing the per-atom
+                        // satisfiability check (one solver call per atom) the loops
+                        // below used to run.
+                        let ccs_str = nav
+                            .nav
+                            .cautious_consequences(route.iter())
+                            .map(|fs| fs.iter().map(|f| lex::repr(*f)).collect::<HashSet<_>>())
+                            .unwrap_or_default();
 
                         if let Some(re) = fst.and_then(|s| Regex::new(r#s).ok()) {
                             for f in atoms.iter() {
@@ -166,28 +174,16 @@ pub mod interpreter_bindings {
 
                                 if !bcs_str.contains(f) {
                                     println!("\x1b[0;30;41m{}\x1b[0m", f);
-                                } else {
-                                    if let Ok(1) = nav.nav.enumerate_solutions_quietly(
-                                        Some(1),
-                                        route.iter().chain([format!("~{f}")].iter()),
-                                    ) {
-                                    } else {
-                                        println!("\x1b[0;30;42m{}\x1b[0m", f);
-                                    }
+                                } else if ccs_str.contains(f) {
+                                    println!("\x1b[0;30;42m{}\x1b[0m", f);
                                 }
                             }
                         } else {
                             for f in atoms.iter() {
                                 if !bcs_str.contains(f) {
                                     println!("\x1b[0;30;41m{}\x1b[0m", f)
-                                } else {
-                                    if let Ok(1) = nav.nav.enumerate_solutions_quietly(
-                                        Some(1),
-                                        route.iter().chain([format!("~{f}")].iter()),
-                                    ) {
-                                    } else {
-                                        println!("\x1b[0;30;42m{}\x1b[0m", f)
-                                    }
+                                } else if ccs_str.contains(f) {
+                                    println!("\x1b[0;30;42m{}\x1b[0m", f)
                                 }
                             }
                         }
@@ -217,11 +213,16 @@ pub mod interpreter_bindings {
             atoms.iter().cloned().collect::<Vec<_>>()
         };
 
-        let mut or = ":-".to_owned();
-        xs.iter().for_each(|a| {
-            or = format!("{or} not {a},");
-        });
-        or = format!("{}.", &or[..or.len() - 1]);
+        // Build ":- not a1, not a2, … ." in O(n). The old `or = format!("{or} …")`
+        // re-copied the entire accumulated string on every atom → O(n²) total.
+        let mut or = String::from(":-");
+        for a in xs.iter() {
+            or.push_str(" not ");
+            or.push_str(a);
+            or.push(',');
+        }
+        or.pop();
+        or.push('.');
 
         let shows = nav
             .nav
@@ -281,9 +282,11 @@ pub mod interpreter_bindings {
 
         let ys = cc
             .map(|cc| {
-                let cc_ = cc.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+                // HashSet so the per-atom membership filter is O(1), not O(|cc|)
+                // (the whole filter was O(|xs|·|cc|)).
+                let cc_ = cc.iter().map(|s| s.to_string()).collect::<HashSet<_>>();
                 xs.iter()
-                    .filter(move |x| !cc_.contains(x))
+                    .filter(move |x| !cc_.contains(*x))
                     .cloned()
                     .collect::<Vec<_>>()
             })
@@ -342,7 +345,6 @@ pub mod interpreter_bindings {
             }
             m += 1;
             pb.set_position(m);
-            thread::sleep(Duration::from_millis(12));
         }
         pb.finish_with_message("computed facets");
         println!("\n{k}");
@@ -374,7 +376,7 @@ pub mod interpreter_bindings {
         match args
             .first()
             .and_then(|filename| parse_weighted_facets_from_file(filename))
-            .and_then(|wfcs| weighted_facet_count(&mut nav.nav, route.to_vec(), wfcs))
+            .and_then(|wfcs| weighted_facet_count(&mut nav.nav, &route, &wfcs))
         {
             Some(score) => println!("{:?}", score),
             _ => println!("NA"),
@@ -397,13 +399,13 @@ pub mod interpreter_bindings {
                 if let Some(re) = args.get(1).and_then(|s| Regex::new(r#s).ok()) {
                     for f in facets.iter().filter(|f| re.is_match(f)) {
                         route.push(f.to_owned());
-                        match weighted_facet_count(&mut nav.nav, route.to_vec(), wfcs.clone()) {
+                        match weighted_facet_count(&mut nav.nav, &route, &wfcs) {
                             Some(score) => println!("{:?} {f}", score),
                             _ => println!("NA"),
                         }
                         route.pop();
                         route.push(format!("~{f}"));
-                        match weighted_facet_count(&mut nav.nav, route.to_vec(), wfcs.clone()) {
+                        match weighted_facet_count(&mut nav.nav, &route, &wfcs) {
                             Some(score) => println!("{:?} ~{f}", score),
                             _ => println!("NA"),
                         }
@@ -412,13 +414,13 @@ pub mod interpreter_bindings {
                 } else {
                     for f in facets.iter() {
                         route.push(f.to_owned());
-                        match weighted_facet_count(&mut nav.nav, route.to_vec(), wfcs.clone()) {
+                        match weighted_facet_count(&mut nav.nav, &route, &wfcs) {
                             Some(score) => println!("{:?} {f}", score),
                             _ => println!("NA"),
                         }
                         route.pop();
                         route.push(format!("~{f}"));
-                        match weighted_facet_count(&mut nav.nav, route.to_vec(), wfcs.clone()) {
+                        match weighted_facet_count(&mut nav.nav, &route, &wfcs) {
                             Some(score) => println!("{:?} ~{f}", score),
                             _ => println!("NA"),
                         }
@@ -534,11 +536,16 @@ pub mod interpreter_bindings {
             atoms.iter().cloned().collect::<Vec<_>>()
         };
 
-        let mut or = ":-".to_owned();
-        xs.iter().for_each(|a| {
-            or = format!("{or} not {a},");
-        });
-        or = format!("{}.", &or[..or.len() - 1]);
+        // Build ":- not a1, not a2, … ." in O(n). The old `or = format!("{or} …")`
+        // re-copied the entire accumulated string on every atom → O(n²) total.
+        let mut or = String::from(":-");
+        for a in xs.iter() {
+            or.push_str(" not ");
+            or.push_str(a);
+            or.push(',');
+        }
+        or.pop();
+        or.push('.');
 
         let shows = nav
             .nav
@@ -858,14 +865,10 @@ pub mod interpreter_bindings {
         while !facets.is_empty() && condition_holds(2 * facets.len(), route.len()) {
             for cmd in &commands {
                 let cmd_str = cmd.trim().to_string();
-                (atoms, facets, route, ctx) = command(
-                    cmd_str,
-                    nav,
-                    atoms.clone(),
-                    facets.clone(),
-                    route.clone(),
-                    ctx.clone(),
-                )?;
+                // `command` consumes the state and returns the updated state, so we
+                // move it straight through instead of deep-cloning all four vectors
+                // (atoms can be thousands of strings) on every command, every iteration.
+                (atoms, facets, route, ctx) = command(cmd_str, nav, atoms, facets, route, ctx)?;
             }
         }
     
@@ -1029,11 +1032,16 @@ pub mod interpreter_bindings {
             atoms.iter().cloned().collect::<Vec<_>>()
         };
 
-        let mut or = ":-".to_owned();
-        xs.iter().for_each(|a| {
-            or = format!("{or} not {a},");
-        });
-        or = format!("{}.", &or[..or.len() - 1]);
+        // Build ":- not a1, not a2, … ." in O(n). The old `or = format!("{or} …")`
+        // re-copied the entire accumulated string on every atom → O(n²) total.
+        let mut or = String::from(":-");
+        for a in xs.iter() {
+            or.push_str(" not ");
+            or.push_str(a);
+            or.push(',');
+        }
+        or.pop();
+        or.push('.');
 
         let shows = nav
             .nav
