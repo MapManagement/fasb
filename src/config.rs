@@ -27,6 +27,8 @@ pub const FILTER_ATOMS: &'static str = ":filter_atoms";
 pub const IS_ATOM: &'static str = ":isatom";
 pub const SOE: &'static str = ":soe";
 pub const CONTEXT: &'static str = ":ctx";
+pub const CACHE: &'static str = "cache";
+pub const OPTIMIZATION: &'static str = "optimization";
 pub const SIGNIFICANCE: &'static str = "sig";
 pub const SIGNIFICANCE_PROJECTING: &'static str = "sig*";
 pub const COMPUTE_FACETS_SOE: &'static str = "!?soe";
@@ -36,7 +38,7 @@ pub const IS_FACET_R: &'static str = "isfacet!";
 pub const ENTAILMENT: &'static str = "|=";
 pub const QUIT: &'static str = ":q";
 pub const LOOP: &'static str = "while";
-pub const WHILE_LOOP_DO: &'static str = "do";       
+pub const WHILE_LOOP_DO: &'static str = "do";
 pub const WHILE_LOOP_CMD_SEP: &'static str = ";";
 pub const WHILE_LOOP_VAR_FACETS: &'static str = "#facets";
 pub const WHILE_LOOP_VAR_ROUTE: &'static str = "#route";
@@ -69,12 +71,19 @@ pub const CHANGE_MODE_ALIAS: &'static str = "'";
 pub const PROPOSE_STEP_ALIAS: &'static str = "$";
 pub const TAKE_STEP_ALIAS: &'static str = "$$";
 pub const CONTEXT_ALIAS: &'static str = ">";
+pub const CACHE_ALIAS: &'static str = ":cache";
+pub const OPTIMIZATION_ALIAS: &'static str = ":opt";
 pub const SIGNIFICANCE_ALIAS: &'static str = "%";
 pub const SIGNIFICANCE_PROJECTING_ALIAS: &'static str = "!%";
 pub const IS_FACET_ALIAS: &'static str = ":?";
 pub const IS_FACET_R_ALIAS: &'static str = ":?r";
 
 pub const FILTER_KEYWORD: &'static str = "%filter ";
+pub const CONTROL_ON: &'static str = "on";
+pub const CONTROL_OFF: &'static str = "off";
+pub const CONTROL_CLEAR: &'static str = "clear";
+pub const CONTROL_SIZE: &'static str = "size";
+pub const CONTROL_STATUS: &'static str = "status";
 
 pub(crate) fn manual() {
     println!(
@@ -155,6 +164,12 @@ pub(crate) fn manual() {
     );
     println!(
         "display navigation mode                                                                       ->  {DISPLAY_MODE}"
+    );
+    println!(
+        "control facet cache                                                                            ->  {CACHE} {{{CONTROL_ON},{CONTROL_OFF},{CONTROL_CLEAR},{CONTROL_SIZE},{CONTROL_STATUS}}}"
+    );
+    println!(
+        "control optimized paths                                                                        ->  {OPTIMIZATION} {{{CONTROL_ON},{CONTROL_OFF},{CONTROL_STATUS}}}"
     );
     println!(
         "quit                                                                                          ->  {QUIT}"

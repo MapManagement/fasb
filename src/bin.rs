@@ -17,6 +17,8 @@ pub fn main() {
     let mut args = input.collect::<Vec<_>>();
     let mut facets_at_startup = true;
     let mut learned_that_at_startup = false;
+    let mut optimized = false;
+    let mut cache = false;
     if args.contains(&"--f".to_owned()) {
         facets_at_startup = false;
         let i = unsafe { args.iter().position(|x| *x == "--f").unwrap_unchecked() };
@@ -27,8 +29,35 @@ pub fn main() {
         let i = unsafe { args.iter().position(|x| *x == "--l").unwrap_unchecked() };
         args.remove(i);
     }
+    if args.contains(&"--optimized".to_owned()) {
+        optimized = true;
+        let i = unsafe {
+            args.iter()
+                .position(|x| *x == "--optimized")
+                .unwrap_unchecked()
+        };
+        args.remove(i);
+    }
+    if args.contains(&"--cache".to_owned()) {
+        cache = true;
+        let i = unsafe { args.iter().position(|x| *x == "--cache").unwrap_unchecked() };
+        args.remove(i);
+    }
+    if args.contains(&"--fast".to_owned()) {
+        optimized = true;
+        cache = true;
+        let i = unsafe { args.iter().position(|x| *x == "--fast").unwrap_unchecked() };
+        args.remove(i);
+    }
 
-    let _ = start_fasb(args, arg, facets_at_startup, learned_that_at_startup);
+    let _ = start_fasb(
+        args,
+        arg,
+        facets_at_startup,
+        learned_that_at_startup,
+        optimized,
+        cache,
+    );
 }
 
 #[cfg(feature = "interpreter")]
@@ -51,6 +80,8 @@ pub fn main() {
 
     let mut facets_at_startup = true;
     let mut learned_that_at_startup = false;
+    let mut optimized = false;
+    let mut cache = false;
     if args.contains(&"--f".to_owned()) {
         facets_at_startup = false;
         let i = unsafe { args.iter().position(|x| *x == "--f").unwrap_unchecked() };
@@ -61,6 +92,26 @@ pub fn main() {
         let i = unsafe { args.iter().position(|x| *x == "--l").unwrap_unchecked() };
         args.remove(i);
     }
+    if args.contains(&"--optimized".to_owned()) {
+        optimized = true;
+        let i = unsafe {
+            args.iter()
+                .position(|x| *x == "--optimized")
+                .unwrap_unchecked()
+        };
+        args.remove(i);
+    }
+    if args.contains(&"--cache".to_owned()) {
+        cache = true;
+        let i = unsafe { args.iter().position(|x| *x == "--cache").unwrap_unchecked() };
+        args.remove(i);
+    }
+    if args.contains(&"--fast".to_owned()) {
+        optimized = true;
+        cache = true;
+        let i = unsafe { args.iter().position(|x| *x == "--fast").unwrap_unchecked() };
+        args.remove(i);
+    }
 
     let _ = start_fasb_interpreter(
         args,
@@ -68,5 +119,7 @@ pub fn main() {
         script.unwrap().to_string(),
         facets_at_startup,
         learned_that_at_startup,
+        optimized,
+        cache,
     );
 }

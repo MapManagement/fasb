@@ -12,6 +12,59 @@ pub fn weighted_facet_count(
     nav: &mut Navigator,
     route: &[String],
     weighted_fs: &[WeightedFacet],
+    optimized: bool,
+) -> Option<f32> {
+    if optimized {
+        weighted_facet_count_optimized(nav, route, weighted_fs)
+    } else {
+        weighted_facet_count_legacy(nav, route.to_vec(), weighted_fs.to_vec())
+    }
+}
+
+fn weighted_facet_count_legacy(
+    nav: &mut Navigator,
+    route: Vec<String>,
+    weighted_fs: Vec<WeightedFacet>,
+) -> Option<f32> {
+    let mut score = 0.0;
+
+    let bc = nav
+        .brave_consequences(route.clone().iter())
+        .map(|xs| xs.iter().map(|s| s.to_string()).collect::<Vec<_>>())?;
+
+    if !bc.is_empty() {
+        for x in weighted_fs.iter().filter(|w| !w.inclusive) {
+            if !bc.contains(&x.facet) {
+                score += x.weight
+            }
+        }
+    } else {
+        return Some(score);
+    }
+
+    let cc = nav
+        .cautious_consequences(route.iter())
+        .map(|xs| xs.iter().map(|s| s.to_string()).collect::<Vec<_>>())?;
+
+    for x in weighted_fs.iter().filter(|w| w.inclusive) {
+        if cc.contains(&x.facet) {
+            score += x.weight
+        }
+    }
+
+    for x in cc {
+        if !bc.contains(&x) {
+            score += 1.0
+        }
+    }
+
+    Some(score)
+}
+
+fn weighted_facet_count_optimized(
+    nav: &mut Navigator,
+    route: &[String],
+    weighted_fs: &[WeightedFacet],
 ) -> Option<f32> {
     let mut score = 0.0;
 
