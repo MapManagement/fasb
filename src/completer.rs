@@ -137,8 +137,8 @@ fn classify(line: &str, word_start: usize) -> Slot<'_> {
         }
     } else {
         match body.split_whitespace().count() {
-            0 => Slot::Comparator,
-            1 => Slot::Metric,
+            0 => Slot::Metric,
+            1 => Slot::Comparator,
             _ => Slot::Nothing,
         }
     }
