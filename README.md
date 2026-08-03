@@ -236,7 +236,7 @@ from fasb import wrappers_bindings # wrappers.rs
 | SOE | `":soe"` | Counts/collects representative answer sets | `":soe"` |
 | SIGNIFICANCE | `"sig"` | Shows significance of facets for a literal | `"%"` |
 | SIGNIFICANCE_PROJECTING | `"sig*"` | Significance under projection | `"!%"` |
-| ENTAILMENT | "|=" | Logical entailment (cautious/brave) | "|=" |
+| ENTAILMENT | "\|=" | Logical entailment (cautious/brave) | "\|=" |
 | DISPLAY_MODE | `":mode"` | Shows the navigation mode | `":mode"` |
 | CHANGE_MODE | `":m"` | Changes the navigation mode | `"'"` |
 | QUIT | `":q"` | Quits the interpreter | `":q"` |
