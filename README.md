@@ -163,87 +163,84 @@ from fasb import interpreter_bindings # interpreter.rs
 from fasb import wrappers_bindings # wrappers.rs
 ```
 
+## While Loop
 
-
-## While-Schleife
-
-| Konstanten-Name | Zeichenfolge | Funktion | Vorgeschlagene Änderungen |
-|----------------|--------------|----------|--------------------------|
-| WHILE_LOOP | `"while"` | Startet die Schleife (ersetzt das alte `\`) | — |
-| WHILE_LOOP_DO | — | *(neu)* Trennt Bedingung von Befehlsblock | `"do"` |
-| WHILE_LOOP_COND_SEP | `" \| "` | Trennt Bedingung von Befehlen | Entfällt – wird durch `do` ersetzt |
-| WHILE_LOOP_CMD_SEP | `"."` | Trennt mehrere Befehle voneinander | `";"` |
-| WHILE_LOOP_VAR_FACETS | `"#f"` | Variable: Aktuelle Facettenanzahl | `"#facets"` |
-| WHILE_LOOP_VAR_ROUTE | `"#r"` | Variable: Aktuelle Routenlänge | `"#route"` |
-| WHILE_LOOP_OP_NEQ | `"!="` | Ungleich | — |
-| WHILE_LOOP_OP_GT | `">"` | Größer als | — |
-| WHILE_LOOP_OP_GTE | `">="` | Größer oder gleich | — |
-| WHILE_LOOP_OP_LT | `"<"` | Kleiner als | — |
-| WHILE_LOOP_OP_LTE | `"<="` | Kleiner oder gleich | — |
+| Constant Name | Current Command | Function | Old Symbol |
+| --- | --- | --- | --- |
+| WHILE_LOOP | `"while"` | Starts the loop | `"while"` |
+| WHILE_LOOP_DO | `"do"` | Separates condition from command block | — |
+| WHILE_LOOP_CMD_SEP | `";"` | Separates multiple commands | `"."` |
+| WHILE_LOOP_VAR_FACETS | `"#facets"` | Variable: Current facet count | `"#f"` |
+| WHILE_LOOP_VAR_ROUTE | `"#route"` | Variable: Current route length | `"#r"` |
+| WHILE_LOOP_OP_NEQ | `"!="` | Not equal | `"!="` |
+| WHILE_LOOP_OP_GT | `">"` | Greater than | `">"` |
+| WHILE_LOOP_OP_GTE | `">="` | Greater than or equal to | `">="` |
+| WHILE_LOOP_OP_LT | `"<"` | Less than | `"<"` |
+| WHILE_LOOP_OP_LTE | `"<="` | Less than or equal to | `"<="` |
 
 ---
 
-## Routen-Navigation
+## Route Navigation
 
-| Konstanten-Name | Zeichenfolge | Funktion | Vorgeschlagene Änderungen |
-|----------------|--------------|----------|--------------------------|
-| SHOW_ROUTE | `"@"` | Zeigt die aktuelle Route an | `"route"` |
-| DEL_LAST | `"-"` | Nimmt die letzte Facette zurück (Undo) | `"undo"` |
-| CLEAR_ROUTE | `"--"` | Löscht die gesamte Route | `"clear"` |
-| PROPOSE_STEP | `"$"` | Schlägt den nächsten Navigationsschritt vor | `"propose"` |
-| TAKE_STEP | `"$$"` | Führt den nächsten Schritt aus | `"step"` |
+| Constant Name | Current Command | Function | Old Symbol |
+| --- | --- | --- | --- |
+| SHOW_ROUTE | `"route"` | Shows the current route | `"@"` |
+| DEL_LAST | `"undo"` | Reverts the last facet (Undo) | `"-"` |
+| CLEAR_ROUTE | `"clear"` | Clears the entire route | `"--"` |
+| PROPOSE_STEP | `"propose"` | Proposes the next navigation step | `"$"` |
+| TAKE_STEP | `"step"` | Executes the next step | `"$$"` |
 
 ---
 
-## Facetten
+## Facets
 
-| Konstanten-Name | Zeichenfolge | Funktion | Vorgeschlagene Änderungen |
-|----------------|--------------|----------|--------------------------|
-| ACTIVATE_FACETS | `"+"` | Aktiviert bestimmte Facetten | `"activate"` (oder `"+"` als Alias) |
-| ACTIVATE_FACETS_LT | `"+'"`  | Aktiviert Facetten und zeigt Konsequenzen | `"activate!"` |
-| ACTIVATE_FACETS_LAZY | `":+"` | Lazy Activation von Facetten | `"lazy+"` |
-| SHOW_FACETS | `"?"` | Zeigt alle aktuell induzierten Facetten | `"facets"` |
-| COMPUTE_FACETS | `"!?"` | Berechnet Facetten für bestimmte Targets | `"compute"` |
-| COMPUTE_FACETS_SU | `"'!?"` | Berechnet Facetten (spezifisches Setup) | `"compute^"` |
-| FACET_COUNT | `"#?"` | Zeigt die Anzahl der aktuellen Facetten | `"count"` |
-| FACET_COUNTS | `"#??"` | Zeigt Counts unter gefilterten Facetten | `"counts"` |
-| FACET_COUNTS_PROJECTING | `"!#??"` | Zeigt Counts mittels Projektion | `"counts!"` |
-| WEIGHTED_FACET_COUNT | `"#?w"` | Gewichteter Facetten-Count | `"wcount"` |
-| WEIGHTED_FACET_COUNTS | `"#??w"` | Gewichtete Counts unter Filter | `"wcounts"` |
-| IS_FACET | `":?"` | Prüft, ob Atome Facetten sind | `"isfacet"` |
-| IS_FACET_R | `":?r"` | Prüft Facetten (mit Konsistenz-Check) | `"isfacet!"` |
+| Constant Name | Current Command | Function | Old Symbol |
+| --- | --- | --- | --- |
+| ACTIVATE_FACETS | `"activate"` (or `"+"`) | Activates specific facets | `"+"` |
+| ACTIVATE_FACETS_LT | `"activate!"` | Activates facets and shows consequences | `"+'"` |
+| ACTIVATE_FACETS_LAZY | `"lazy+"` | Lazy activation of facets | `":+"` |
+| SHOW_FACETS | `"facets"` | Shows all currently induced facets | `"?"` |
+| COMPUTE_FACETS | `"compute"` | Computes facets for specific targets | `"!?"` |
+| COMPUTE_FACETS_SU | `"compute^"` | Computes facets (specific setup) | `"'!?"` |
+| FACET_COUNT | `"count"` | Shows the current facet count | `"#?"` |
+| FACET_COUNTS | `"counts"` | Shows counts under filtered facets | `"#??"` |
+| FACET_COUNTS_PROJECTING | `"counts!"` | Shows counts using projection | `"!#??"` |
+| WEIGHTED_FACET_COUNT | `"wcount"` | Weighted facet count | `"#?w"` |
+| WEIGHTED_FACET_COUNTS | `"wcounts"` | Weighted counts under filter | `"#??w"` |
+| IS_FACET | `"isfacet"` | Checks if atoms are facets | `":?"` |
+| IS_FACET_R | `"isfacet!"` | Checks facets (with consistency check) | `":?r"` |
 
 ---
 
 ## Answer Sets
 
-| Konstanten-Name | Zeichenfolge | Funktion | Vorgeschlagene Änderungen |
-|----------------|--------------|----------|--------------------------|
-| ENUMERATE_SOLUTIONS | `"!"` | Gibt eine bestimmte Anzahl Answer Sets aus | `"solve"` |
-| ENUMERATE_PROJECTED_SOLUTIONS | `"!*"` | Gibt projizierte Answer Sets aus | `"solve*"` |
-| ANSWER_SET_COUNT | `"#!"` | Zeigt die Gesamtzahl der Answer Sets | `"solvecount"` |
-| ANSWER_SET_COUNTS | `"#!!"` | Zeigt Answer-Set-Counts unter Facetten | `"solvecounts"` |
+| Constant Name | Current Command | Function | Old Symbol |
+| --- | --- | --- | --- |
+| ENUMERATE_SOLUTIONS | `"solve"` | Outputs a specific number of answer sets | `"!"` |
+| ENUMERATE_PROJECTED_SOLUTIONS | `"solve*"` | Outputs projected answer sets | `"!*"` |
+| ANSWER_SET_COUNT | `"solvecount"` | Shows the total number of answer sets | `"#!"` |
+| ANSWER_SET_COUNTS | `"solvecounts"` | Shows answer set counts under facets | `"#!!"` |
 
 ---
 
-## System / Konsole
+## System / Console
 
-| Konstanten-Name | Zeichenfolge | Funktion | Vorgeschlagene Änderungen |
-|----------------|--------------|----------|--------------------------|
-| PROMPT | `":: "` | Das Kommandozeilen-Präfix der fASB-Konsole | — |
-| SHOW_PROGRAM | `":src"` | Zeigt das Quell-Logikprogramm | — |
-| SHOW_ATOMS | `":atoms"` | Zeigt alle Atome des Programms | — |
-| FILTER_ATOMS | `":filter_atoms"` | Filtert Atome via Regex | — |
-| IS_ATOM | `":isatom"` | Prüft, ob ein spezifisches Atom existiert | — |
-| CONTEXT | `">"` | Deklariert einen neuen logischen Kontext (CNF) | `":ctx"` |
-| SOE | `":soe"` | Zählt/Sammelt repräsentative Answer Sets | — |
-| SIGNIFICANCE | `"%"` | Zeigt Signifikanz von Facetten für ein Literal | `"sig"` |
-| SIGNIFICANCE_PROJECTING | `"!%"` | Signifikanz unter Projektion | `"sig*"` |
-| ENTAILMENT | `"\|="` | Logische Folgerung (cautious/brave) | — |
-| DISPLAY_MODE | `":mode"` | Zeigt den Navigations-Modus | — |
-| CHANGE_MODE | `"'"` | Ändert den Navigations-Modus | `":m"` |
-| QUIT | `":q"` | Beendet den Interpreter | — |
-| FILTER_KEYWORD | `"%filter "` | Keyword für interne Filterungen | — |
+| Constant Name | Current Command | Function | Old Symbol |
+| --- | --- | --- | --- |
+| PROMPT | `":: "` | The command line prefix of the fASB console | `":: "` |
+| SHOW_PROGRAM | `":src"` | Shows the source logic program | `":src"` |
+| SHOW_ATOMS | `":atoms"` | Shows all atoms of the program | `":atoms"` |
+| FILTER_ATOMS | `":filter_atoms"` | Filters atoms via regex | `":filter_atoms"` |
+| IS_ATOM | `":isatom"` | Checks if a specific atom exists | `":isatom"` |
+| CONTEXT | `":ctx"` | Declares a new logical context (CNF) | `">"` |
+| SOE | `":soe"` | Counts/collects representative answer sets | `":soe"` |
+| SIGNIFICANCE | `"sig"` | Shows significance of facets for a literal | `"%"` |
+| SIGNIFICANCE_PROJECTING | `"sig*"` | Significance under projection | `"!%"` |
+| ENTAILMENT | "\|=" | Logical entailment (cautious/brave) | "\|=" |
+| DISPLAY_MODE | `":mode"` | Shows the navigation mode | `":mode"` |
+| CHANGE_MODE | `":m"` | Changes the navigation mode | `"'"` |
+| QUIT | `":q"` | Quits the interpreter | `":q"` |
+| FILTER_KEYWORD | `"%filter "` | Keyword for internal filtering | `"%filter "` |
 
-**Beispiel (alt):** `while #f | $$ . ?`
-**Beispiel (neu):** `while #facets != 0 do step ; facets`
+**Example (old):** `while #f | $$ . ?`
+**Example (new):** `while #facets != 0 do step ; facets`
