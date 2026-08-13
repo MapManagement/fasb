@@ -163,6 +163,16 @@ from fasb import interpreter_bindings # interpreter.rs
 from fasb import wrappers_bindings # wrappers.rs
 ```
 
+You can start fasb directly by using two distinct function:
+
+```python
+# interpreter mode
+from fasb import start_fasb_interpreter
+
+# REPL mode
+from fasb import start_fasb
+```
+
 ## While Loop
 
 | Constant Name | Current Command | Function | Old Symbol |
