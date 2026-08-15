@@ -137,6 +137,7 @@ building. When using the interpreter, provide a script.
 The designated syntax for regular expressions (regex) can be found
 [here](https://docs.rs/regex/latest/regex/).
 
+
 ### commands
 
 Run fasb and type command `man` to see a palette of commands.
@@ -145,6 +146,54 @@ Run fasb and type command `man` to see a palette of commands.
 
 - `--f` suppresses facet computation at startup
 - `--l` prints true and false atoms at startup
+- `--cache` enables the facet cache
+- `--optimized` enables optimized internal computation paths
+- `--fast` enables both `--cache` and `--optimized`
+
+### performance modes
+
+| Mode | fasb flags | Behavior |
+| --- | --- | --- |
+| Baseline | none | Uses the regular computation paths without the facet cache |
+| Cache | `--cache` | Reuses facet computations for previously visited routes |
+| Optimized | `--optimized` | Uses optimized internal computation paths without enabling the cache |
+| Fast | `--fast` | Combines the cache and optimized computation paths |
+
+There is no separate `--baseline` flag. To run the baseline, omit `--cache`,
+`--optimized`, and `--fast`:
+
+```console
+# Baseline
+fasb program.lp 0
+
+# Cache only
+fasb program.lp 0 --cache
+
+# Cache and optimized paths
+fasb program.lp 0 --fast
+```
+
+The same flags work in interpreter mode, where the script path remains last:
+
+```console
+fasb program.lp 0 --fast script.fsb
+```
+
+The cache holds up to 128 entries by default. Its state and the optimized paths
+can also be controlled while fasb is running:
+
+```text
+cache status
+cache on
+cache off
+cache clear
+cache size 256
+optimization status
+optimization on
+optimization off
+```
+
+The aliases `:cache` and `:opt` remain available for compatibility.
 
 ## Python bindings
 
@@ -171,6 +220,55 @@ from fasb import start_fasb_interpreter
 
 # REPL mode
 from fasb import start_fasb
+```
+
+
+## Scripting (interpreter mode)
+
+The interpreter executes one fasb command per line. Lines beginning with `//`
+are comments. Build or install fasb with the Cargo feature `interpreter`:
+
+```console
+# Build from this repository
+cargo build --release --features interpreter
+
+# Or install from crates.io
+cargo install fasb --features interpreter
+```
+
+Create a script, for example:
+
+```text
+// Inspect the initial state
+solve 1
+count
+
+// Navigate until no facets remain
+while #facets != 0 do step; solve 2
+route
+```
+
+Then execute it. Clingo and fasb flags go before the script path:
+
+```console
+fasb program.lp 0 --fast script.fsb
+```
+
+### loops
+
+A loop has the following form:
+
+```text
+while <variable> <operator> <number> do <command>; <command>; ...
+```
+
+Supported variables are `#facets` (the current number of facets) and `#route`
+(the current route length). Supported operators are `!=`, `>`, `>=`, `<`, and
+`<=`. Multiple commands in the loop body are separated by `;`.
+
+```text
+while #facets != 0 do step; facets
+while #route < 3 do step; route
 ```
 
 ## While Loop
@@ -251,6 +349,3 @@ from fasb import start_fasb
 | CHANGE_MODE | `":m"` | Changes the navigation mode | `"'"` |
 | QUIT | `":q"` | Quits the interpreter | `":q"` |
 | FILTER_KEYWORD | `"%filter "` | Keyword for internal filtering | `"%filter "` |
-
-**Example (old):** `while #f | $$ . ?`
-**Example (new):** `while #facets != 0 do step ; facets`
